@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
-import os
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -20,12 +20,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-)q6gwm9yiaj^@!=efv)u%285r!qj762(f@%9yjz%ts3cix7%k$'
+SECRET_KEY = 'django-insecure-%m5__if=2a!ek#!%gtomhoyu(nqdmrio#go7pxuk2jsq^+x55+'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['cpj.onrender.com']
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -37,13 +37,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'api',
+     'api',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
-
 ]
-AUTH_USER_MODEL = 'api.CustomUser'
 
 # Use TokenAuthentication
 REST_FRAMEWORK = {
@@ -66,6 +64,7 @@ MIDDLEWARE = [
         'corsheaders.middleware.CorsMiddleware',
 
 ]
+
 ROOT_URLCONF = 'couplejournal.urls'
 
 TEMPLATES = [
@@ -115,6 +114,7 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+AUTH_USER_MODEL = 'api.CustomUser'
 
 
 # Internationalization
@@ -136,10 +136,6 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, 'static'),
-)
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
