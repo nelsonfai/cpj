@@ -56,7 +56,7 @@ class CollaborativeList(models.Model):
     description = models.TextField()
 
     def __str__(self):
-        return f"List '{self.title}' for Team {self.team.unique_id}"
+        return f"List '{self.title}'"
 
 class Item(models.Model):
     list = models.ForeignKey(CollaborativeList, on_delete=models.CASCADE)
