@@ -12,6 +12,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from django.urls import get_resolver
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
+
 
 
 @api_view(['GET'])
@@ -97,7 +99,6 @@ class LogoutView(APIView):
         return Response({'detail': 'Successfully logged out.'}, status=status.HTTP_200_OK)
     
 #Collaborative Lists
-
 class CollaborativeListCreateView(generics.CreateAPIView):
     queryset = CollaborativeList.objects.all()
     serializer_class = CollaborativeListSerializer
@@ -146,3 +147,33 @@ class ItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     def perform_destroy(self, instance):
         instance.delete()
         return Response(status=204)
+
+
+class CollaborativeListItemsView(generics.ListAPIView):
+    serializer_class = ItemSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
+
+    def get_queryset(self):
+        collaborative_list = get_object_or_404(
+            CollaborativeList, pk=self.kwargs['pk']
+        )
+        return Item.objects.filter(list=collaborative_list)
+
+
+from django.db.models import Count, Sum
+
+class UserCollaborativeListsView(generics.ListAPIView):
+    serializer_class = CollaborativeListSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrTeamMember]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        queryset = CollaborativeList.objects.filter(
+            Q(user=user) | Q(team__member1=user) | Q(team__member2=user)
+        ).annotate(
+            listitem_count=Count('items'),
+            done_item_count=Sum('items__done')
+        )
+
+        return queryset

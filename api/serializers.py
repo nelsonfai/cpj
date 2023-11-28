@@ -35,14 +35,12 @@ class ItemSerializer(serializers.ModelSerializer):
 
 
 class CollaborativeListSerializer(serializers.ModelSerializer):
-    items = ItemSerializer(many=True, read_only=True)
+    listitem_count = serializers.IntegerField()
+    done_item_count = serializers.IntegerField()
 
     class Meta:
         model = CollaborativeList
-        fields = ['id', 'team', 'user', 'title', 'color', 'description', 'items']
+        fields = ['id', 'team', 'user', 'title', 'color', 'description', 'listitem_count', 'done_item_count']
 
-    def create(self, validated_data):
-        # Add the current user to the created CollaborativeList
-        user = self.context['request'].user
-        return CollaborativeList.objects.create(user=user, **validated_data)
+
 

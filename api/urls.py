@@ -1,6 +1,6 @@
 
 from django.urls import path
-from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView
+from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView
 
 urlpatterns = [
     path('list-endpoints/', list_endpoints, name='list-endpoints'),
@@ -12,11 +12,12 @@ urlpatterns = [
     path('update-profile/', UserProfileUpdateView.as_view(), name='update-profile'),
     path('profile-info/', UserInfoView.as_view(), name='profile-info'),
 
-    # Endpoint for creating a new CollaborativeList
-    path('collaborative-lists/', CollaborativeListCreateView.as_view(), name='collaborative-list-create'),
+    # Get all Collaborative lists in which iser is user or t.m1 or t.m2
+    path('collaborative-lists/', UserCollaborativeListsView.as_view(), name='collaborative-list-create'),
     # Endpoint for retrieving, updating, and deleting a specific CollaborativeList
     path('collaborative-lists/<int:pk>/', CollaborativeListRetrieveUpdateDestroyView.as_view(), name='collaborative-list-detail'),
     path('user-collaborative-lists/', UserCollaborativeListsView.as_view(), name='user-collaborative-lists'),
+    path('collaborative-lists/<int:pk>/items/', CollaborativeListItemsView.as_view(), name='collaborative-list-items'),
 
 
      # Endpoint for creating a new Item
