@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from .serializers import CustomUserSerializer,UserInfoSerializer
 from rest_framework.authtoken.serializers import AuthTokenSerializer
-from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.views import ObtainAuthToken,APIView
 from rest_framework.permissions import IsAuthenticated
 
 class SignUpView(generics.CreateAPIView):
@@ -64,3 +64,11 @@ class UserInfoView(generics.RetrieveAPIView):
     def retrieve(self, request, *args, **kwargs):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        # Simply delete the user's token to log them out
+        request.auth.delete()
+        return Response({'detail': 'Successfully logged out.'}, status=status.HTTP_200_OK)
