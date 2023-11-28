@@ -1,6 +1,6 @@
 
 from django.urls import path
-from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints
+from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView
 
 urlpatterns = [
     path('list-endpoints/', list_endpoints, name='list-endpoints'),
@@ -16,6 +16,7 @@ urlpatterns = [
     path('collaborative-lists/', CollaborativeListCreateView.as_view(), name='collaborative-list-create'),
     # Endpoint for retrieving, updating, and deleting a specific CollaborativeList
     path('collaborative-lists/<int:pk>/', CollaborativeListRetrieveUpdateDestroyView.as_view(), name='collaborative-list-detail'),
+    path('user-collaborative-lists/', UserCollaborativeListsView.as_view(), name='user-collaborative-lists'),
 
 
      # Endpoint for creating a new Item

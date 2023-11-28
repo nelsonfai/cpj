@@ -11,6 +11,8 @@ from .permissions import IsOwnerOrTeamMember,IsCollaborativeListMember
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from django.urls import get_resolver
+from django.db.models import Q
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -109,8 +111,17 @@ class CollaborativeListRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyA
     serializer_class = CollaborativeListSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
 
+class UserCollaborativeListsView(generics.ListAPIView):
+    serializer_class = CollaborativeListSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrTeamMember]
 
-
+    def get_queryset(self):
+        user = self.request.user
+        return CollaborativeList.objects.filter(
+            Q(user=user) | Q(team__member1=user) | Q(team__member2=user)
+        )
+    
+    
 class ItemCreateView(generics.CreateAPIView):
     """
     API endpoint for creating a new Item.
