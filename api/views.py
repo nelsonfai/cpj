@@ -2,10 +2,33 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from .serializers import CustomUserSerializer,UserInfoSerializer
+from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.authtoken.views import ObtainAuthToken,APIView
 from rest_framework.permissions import IsAuthenticated
+from .models import CollaborativeList,Item
+from .permissions import IsOwnerOrTeamMember,IsCollaborativeListMember
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from django.urls import get_resolver
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def list_endpoints(request):
+    urlconf = get_resolver()
+    url_list = []
+
+    def extract_endpoints(urlpatterns, namespace=''):
+        for pattern in urlpatterns:
+            if hasattr(pattern, 'url_patterns'):  # Recursive for include() patterns
+                extract_endpoints(pattern.url_patterns, namespace + pattern.namespace + ':')
+            if hasattr(pattern, 'callback') and hasattr(pattern.callback, '__name__'):
+                url_list.append(namespace + pattern.pattern._route)
+
+    extract_endpoints(urlconf.url_patterns)
+
+    return Response(url_list)
+
 
 class SignUpView(generics.CreateAPIView):
     serializer_class = CustomUserSerializer
@@ -20,8 +43,7 @@ class SignUpView(generics.CreateAPIView):
         token, created = Token.objects.get_or_create(user=serializer.instance)
         
         headers = self.get_success_headers(serializer.data)
-        return Response({'token': token.key}, status=status.HTTP_201_CREATED, headers=headers)
-
+        Response({'token': token.key}, status=status.HTTP_201_CREATED, headers=headers)
 class LoginView(ObtainAuthToken):
     serializer_class = AuthTokenSerializer
     permission_classes = [permissions.AllowAny]
@@ -31,9 +53,8 @@ class LoginView(ObtainAuthToken):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
-
         return Response({'token': token.key, 'user_id': user.pk, 'email': user.email}, status=status.HTTP_200_OK)
-
+        
 
 class UserProfileUpdateView(generics.RetrieveUpdateAPIView):
     serializer_class = CustomUserSerializer
@@ -72,3 +93,45 @@ class LogoutView(APIView):
         # Simply delete the user's token to log them out
         request.auth.delete()
         return Response({'detail': 'Successfully logged out.'}, status=status.HTTP_200_OK)
+    
+#Collaborative Lists
+
+class CollaborativeListCreateView(generics.CreateAPIView):
+    queryset = CollaborativeList.objects.all()
+    serializer_class = CollaborativeListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class CollaborativeListRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = CollaborativeList.objects.all()
+    serializer_class = CollaborativeListSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
+
+
+
+class ItemCreateView(generics.CreateAPIView):
+    """
+    API endpoint for creating a new Item.
+    """
+    serializer_class = ItemSerializer
+    permission_classes = [permissions.IsAuthenticated, IsCollaborativeListMember]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class ItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    API endpoint for retrieving, updating, and deleting a specific Item.
+    """
+    queryset = Item.objects.all()
+    serializer_class = ItemSerializer
+    permission_classes = [permissions.IsAuthenticated, IsCollaborativeListMember]
+
+    def perform_update(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        return Response(status=204)

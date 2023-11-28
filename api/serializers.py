@@ -1,6 +1,6 @@
 # couples_diary_backend/api/serializers.py
 from rest_framework import serializers
-from .models import CustomUser
+from .models import CustomUser,CollaborativeList,Item
 
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,3 +21,26 @@ class UserInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ('id', 'email', 'name', 'profile_pic','team_invite_code')
+
+
+class ItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Item
+        fields = ['id', 'list', 'text', 'done']
+
+    def create(self, validated_data):
+        # Add the current user to the created Item
+        user = self.context['request'].user
+        return Item.objects.create(user=user, **validated_data)
+
+class CollaborativeListSerializer(serializers.ModelSerializer):
+    items = ItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = CollaborativeList
+        fields = ['id', 'team', 'user', 'title', 'color', 'description', 'items']
+
+    def create(self, validated_data):
+        # Add the current user to the created CollaborativeList
+        user = self.context['request'].user
+        return CollaborativeList.objects.create(user=user, **validated_data)

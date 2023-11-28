@@ -49,7 +49,8 @@ class Team(models.Model):
 
 class CollaborativeList(models.Model):
 
-    team = models.ForeignKey('Team', on_delete=models.CASCADE)
+    team = models.ForeignKey('Team',on_delete=models.CASCADE,null=True,blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE ,null=True,blank=True )
     title = models.CharField(max_length=255)
     color = models.CharField(max_length=40,)
     description = models.TextField()
