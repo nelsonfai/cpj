@@ -1,5 +1,8 @@
 from django.contrib import admin
 from .models import Team, CollaborativeList, Item, DiaryEntry, MoodTracker, BillingInfo, UserProfile
+from django.contrib.auth import get_user_model  # Add this import
+
+CustomUser = get_user_model()  # Use get_user_model to reference the custom user model
 
 @admin.register(Team)
 class TeamAdmin(admin.ModelAdmin):
@@ -42,6 +45,9 @@ class BillingInfoAdmin(admin.ModelAdmin):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'profile_pic', 'team_invite_code')
+    list_display = ('user', 'profile_pic','name', 'team_invite_code')
     search_fields = ('user__username', 'team_invite_code')
-    # Customize other options as needed
+@admin.register(CustomUser)
+class CustomUserAdmin(admin.ModelAdmin):
+    list_display = ('email', 'is_active', 'is_staff')
+

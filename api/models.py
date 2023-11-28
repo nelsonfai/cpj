@@ -5,7 +5,7 @@ from django.dispatch import receiver
 import random
 import string
 from rest_framework.authtoken.models import Token
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager,PermissionsMixin
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -23,8 +23,10 @@ class CustomUserManager(BaseUserManager):
 
         return self.create_user(email, password, **extra_fields)
 
-class CustomUser(AbstractBaseUser):
+class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
+    name = models.CharField(max_length=30, blank=True,null=True)
+    profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
@@ -34,18 +36,6 @@ class CustomUser(AbstractBaseUser):
 
     def __str__(self):
         return self.email
-
-
-
-
-
-
-
-
-
-
-
-
 class Team(models.Model):
     unique_id = models.CharField(max_length=8, unique=True)
     member1 = models.OneToOneField('UserProfile', related_name='team_member1', on_delete=models.CASCADE,)
@@ -82,7 +72,7 @@ class DiaryEntry(models.Model):
 
 class MoodTracker(models.Model):
     team = models.ForeignKey('Team', on_delete=models.CASCADE)
-    user = models.ForeignKey('CustomUser', on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     mood = models.CharField(max_length=50)
     date = models.DateField()
 
@@ -99,22 +89,9 @@ class BillingInfo(models.Model):
         return f"Billing info for team {self.team.unique_id}"
 
 class UserProfile(models.Model):
-    user = models.OneToOneField('CustomUser', on_delete=models.CASCADE)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    name = models.CharField(max_length=200,null=True,blank=True)
     profile_pic = models.FileField(null=True,blank = True)
     team_invite_code = models.CharField(max_length=6, unique=True, blank=True, null=True)
 
-
-
-@receiver(post_save, sender=CustomUser)
-def create_auth_token(sender, instance=None, created=False, **kwargs):
-    if created:
-        Token.objects.create(user=instance)
-
-@receiver(post_save, sender=CustomUser)
-def create_user_profile(sender, instance=None, created=False, **kwargs):
-    if created:
-        UserProfile.objects.create(user=instance, team_invite_code=generate_invite_code())
-
-def generate_invite_code():
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
