@@ -6,7 +6,7 @@ from .models import CustomUser,UserProfile
 import random
 import string
 
-
+'''
 @receiver(post_save, sender=CustomUser)
 def create_auth_token(sender, instance, created=False, **kwargs):
     print('creating auth token')
@@ -15,7 +15,7 @@ def create_auth_token(sender, instance, created=False, **kwargs):
         print('auth token create started')
         Token.objects.create(user=instance)
         print('auth token created')
-
+''' 
 
 @receiver(post_save, sender=CustomUser)
 def create_user_profile(sender, instance, created=False, **kwargs):
