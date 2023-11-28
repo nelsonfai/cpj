@@ -120,7 +120,7 @@ class UserCollaborativeListsView(generics.ListAPIView):
         return CollaborativeList.objects.filter(
             Q(user=user) | Q(team__member1=user) | Q(team__member2=user)
         )
-    
+
     
 class ItemCreateView(generics.CreateAPIView):
     """

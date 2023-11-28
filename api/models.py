@@ -40,15 +40,14 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.email
 class Team(models.Model):
     unique_id = models.CharField(max_length=8, unique=True)
-    member1 = models.OneToOneField('UserProfile', related_name='team_member1', on_delete=models.CASCADE,)
-    member2 = models.OneToOneField('UserProfile', related_name='team_member2', on_delete=models.CASCADE, null=True, blank=True, )
+    member1 = models.OneToOneField(CustomUser, related_name='team_member1', on_delete=models.CASCADE,)
+    member2 = models.OneToOneField(CustomUser, related_name='team_member2', on_delete=models.CASCADE, null=True, blank=True, )
     is_premium = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Team {self.unique_id} with members: {self.member1.username}, {self.member2.username if self.member2 else 'None'}"
 
 class CollaborativeList(models.Model):
-
     team = models.ForeignKey('Team',on_delete=models.CASCADE,null=True,blank=True)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE ,null=True,blank=True )
     title = models.CharField(max_length=255)
@@ -90,11 +89,5 @@ class BillingInfo(models.Model):
 
     def __str__(self):
         return f"Billing info for team {self.team.unique_id}"
-
-class UserProfile(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    name = models.CharField(max_length=200,null=True,blank=True)
-    profile_pic = models.FileField(null=True,blank = True)
-    team_invite_code = models.CharField(max_length=6, unique=True, blank=True, null=True)
 
 

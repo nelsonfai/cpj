@@ -33,6 +33,7 @@ class ItemSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         return Item.objects.create(user=user, **validated_data)
 
+
 class CollaborativeListSerializer(serializers.ModelSerializer):
     items = ItemSerializer(many=True, read_only=True)
 
@@ -44,3 +45,4 @@ class CollaborativeListSerializer(serializers.ModelSerializer):
         # Add the current user to the created CollaborativeList
         user = self.context['request'].user
         return CollaborativeList.objects.create(user=user, **validated_data)
+

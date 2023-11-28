@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Team, CollaborativeList, Item, DiaryEntry, MoodTracker, BillingInfo, UserProfile
+from .models import Team, CollaborativeList, Item, DiaryEntry, MoodTracker, BillingInfo
 from django.contrib.auth import get_user_model  # Add this import
 
 CustomUser = get_user_model()  # Use get_user_model to reference the custom user model
@@ -12,7 +12,7 @@ class TeamAdmin(admin.ModelAdmin):
 
 @admin.register(CollaborativeList)
 class CollaborativeListAdmin(admin.ModelAdmin):
-    list_display = ('team', 'title', 'color', 'description')
+    list_display = ('team', 'title', 'color', 'description','user')
     list_filter = ('team',)
     search_fields = ('title', 'team__unique_id')
     # Customize other options as needed
@@ -43,10 +43,7 @@ class BillingInfoAdmin(admin.ModelAdmin):
     search_fields = ('team__unique_id', 'card_number')
     # Customize other options as needed
 
-@admin.register(UserProfile)
-class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'profile_pic','name', 'team_invite_code')
-    search_fields = ('user__username', 'team_invite_code')
+
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
     list_display = ('email', 'is_active', 'is_staff')
