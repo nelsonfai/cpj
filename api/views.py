@@ -41,9 +41,9 @@ class SignUpView(generics.CreateAPIView):
         
         # Create a token for the user
         token, created = Token.objects.get_or_create(user=serializer.instance)
-        
         headers = self.get_success_headers(serializer.data)
-        Response({'token': token.key}, status=status.HTTP_201_CREATED, headers=headers)
+        return Response({'token': token.key}, status=status.HTTP_201_CREATED, headers=headers)
+
 class LoginView(ObtainAuthToken):
     serializer_class = AuthTokenSerializer
     permission_classes = [permissions.AllowAny]
