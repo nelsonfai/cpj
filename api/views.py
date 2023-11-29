@@ -2,8 +2,7 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer
-from rest_framework.authtoken.serializers import AuthTokenSerializer
+from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer,CustomAuthTokenSerializer
 from rest_framework.authtoken.views import ObtainAuthToken,APIView
 from rest_framework.permissions import IsAuthenticated
 from .models import CollaborativeList,Item
@@ -50,7 +49,7 @@ class SignUpView(generics.CreateAPIView):
         return Response({'token': token.key}, status=status.HTTP_201_CREATED, headers=headers)
 
 class LoginView(ObtainAuthToken):
-    serializer_class = AuthTokenSerializer
+    serializer_class = CustomAuthTokenSerializer
     permission_classes = [permissions.AllowAny]
     authentication_classes = [EmailBackend]  # Use the custom authentication class
 
