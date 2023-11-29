@@ -52,7 +52,7 @@ class CollaborativeList(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE ,null=True,blank=True )
     title = models.CharField(max_length=255)
     color = models.CharField(max_length=40,)
-    description = models.TextField()
+    description = models.TextField( null=True,blank=True)
 
     def __str__(self):
         return f"List '{self.title}'"

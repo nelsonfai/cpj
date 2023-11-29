@@ -29,11 +29,9 @@ class ItemSerializer(serializers.ModelSerializer):
         model = Item
         fields = ['id', 'list', 'text', 'done']
 
-    def create(self, validated_data):
-        # Add the current user to the created Item
-        user = self.context['request'].user
-        return Item.objects.create(user=user, **validated_data)
 
+    def create(self, validated_data):
+        return Item.objects.create(**validated_data)
 
 class CollaborativeListSerializer(serializers.ModelSerializer):
     listitem_count = serializers.IntegerField()

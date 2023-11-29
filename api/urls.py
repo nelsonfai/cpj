@@ -14,6 +14,7 @@ urlpatterns = [
 
     # Get all Collaborative lists in which iser is user or t.m1 or t.m2
     path('collaborative-lists/', UserCollaborativeListsView.as_view(), name='collaborative-list-create'),#used
+    path('create-collabotive-list/', CollaborativeListCreateView.as_view(), name='create-collaborative-list'),
     # Endpoint for retrieving, updating, and deleting a specific CollaborativeList
     path('collaborative-lists/<int:pk>/', CollaborativeListRetrieveUpdateDestroyView.as_view(), name='collaborative-list-detail'),
     path('user-collaborative-lists/', UserCollaborativeListsView.as_view(), name='user-collaborative-lists'),
@@ -24,6 +25,6 @@ urlpatterns = [
     path('items/', ItemCreateView.as_view(), name='item-create'),
 
     # Endpoint for retrieving, updating, and deleting a specific Item
-    path('items/<int:pk>/', ItemRetrieveUpdateDestroyView.as_view(), name='item-detail'),
+    path('items/<int:pk>/', ItemRetrieveUpdateDestroyView.as_view(), name='item-detail'), #used
 
 ]
