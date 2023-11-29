@@ -6,7 +6,7 @@ from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeLi
 from rest_framework.authtoken.views import ObtainAuthToken,APIView
 from rest_framework.permissions import IsAuthenticated
 from .models import CollaborativeList,Item
-from .permissions import IsOwnerOrTeamMember,IsCollaborativeListMember
+from .permissions import IsOwnerOrTeamMember
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from django.urls import get_resolver
