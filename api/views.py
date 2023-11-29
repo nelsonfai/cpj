@@ -2,7 +2,7 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer,CustomAuthTokenSerializer
+from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer,CollaborativeListSerializerExtended
 from rest_framework.authtoken.views import ObtainAuthToken,APIView
 from rest_framework.permissions import IsAuthenticated
 from .models import CollaborativeList,Item
@@ -114,29 +114,14 @@ class CollaborativeListCreateView(generics.CreateAPIView):
 
 class CollaborativeListRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = CollaborativeList.objects.all()
-    serializer_class = CollaborativeListSerializer
+    serializer_class = CollaborativeListSerializerExtended
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
 
-class UserCollaborativeListsView(generics.ListAPIView):
-    serializer_class = CollaborativeListSerializer
-    permission_classes = [IsAuthenticated, IsOwnerOrTeamMember]
 
-    def get_queryset(self):
-        user = self.request.user
-        return CollaborativeList.objects.filter(
-            Q(user=user) | Q(team__member1=user) | Q(team__member2=user)
-        )
-
-    
 class ItemCreateView(generics.CreateAPIView):
-    """
-    API endpoint for creating a new Item.
-    """
     serializer_class = ItemSerializer
     permission_classes = [permissions.IsAuthenticated, IsItemOwnerOrTeamMember]
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
 
 class ItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -157,7 +142,6 @@ class ItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 class CollaborativeListItemsView(generics.ListAPIView):
     serializer_class = ItemSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
-
     def get_queryset(self):
         collaborative_list = get_object_or_404(
             CollaborativeList, pk=self.kwargs['pk']
@@ -168,7 +152,7 @@ class CollaborativeListItemsView(generics.ListAPIView):
 from django.db.models import Count, Sum
 
 class UserCollaborativeListsView(generics.ListAPIView):
-    serializer_class = CollaborativeListSerializer
+    serializer_class = CollaborativeListSerializerExtended
     permission_classes = [IsAuthenticated, IsOwnerOrTeamMember]
 
     def get_queryset(self):

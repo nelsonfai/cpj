@@ -24,22 +24,34 @@ class UserInfoSerializer(serializers.ModelSerializer):
         fields = ('id', 'email', 'name', 'profile_pic','team_invite_code')
 
 
+"""class ItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Item
+        fields = ['id', 'list', 'text', 'done']
+    def create(self, validated_data):
+        return Item.objects.create(**validated_data)
+"""
 class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
         fields = ['id', 'list', 'text', 'done']
 
 
-    def create(self, validated_data):
-        return Item.objects.create(**validated_data)
 
 class CollaborativeListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CollaborativeList
+        fields = ['id', 'team', 'user', 'title', 'color', 'description']
+
+class CollaborativeListSerializerExtended(serializers.ModelSerializer):
     listitem_count = serializers.IntegerField()
     done_item_count = serializers.IntegerField()
 
     class Meta:
         model = CollaborativeList
         fields = ['id', 'team', 'user', 'title', 'color', 'description', 'listitem_count', 'done_item_count']
+
+
 
 class CustomAuthTokenSerializer(AuthTokenSerializer):
     def validate(self, attrs):
