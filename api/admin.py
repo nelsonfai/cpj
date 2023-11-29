@@ -46,5 +46,5 @@ class BillingInfoAdmin(admin.ModelAdmin):
 
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('email', 'is_active', 'is_staff')
+    list_display = ('email', 'is_active', 'is_staff',)
 

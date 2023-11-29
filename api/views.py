@@ -13,6 +13,7 @@ from rest_framework.permissions import AllowAny
 from django.urls import get_resolver
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from .authentication import EmailBackend
 
 
 
@@ -51,6 +52,7 @@ class SignUpView(generics.CreateAPIView):
 class LoginView(ObtainAuthToken):
     serializer_class = AuthTokenSerializer
     permission_classes = [permissions.AllowAny]
+    authentication_classes = [EmailBackend]  # Use the custom authentication class
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data, context={'request': request})
@@ -58,7 +60,6 @@ class LoginView(ObtainAuthToken):
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
         return Response({'token': token.key, 'user_id': user.pk, 'email': user.email}, status=status.HTTP_200_OK)
-        
 
 class UserProfileUpdateView(generics.RetrieveUpdateAPIView):
     serializer_class = CustomUserSerializer
@@ -168,12 +169,11 @@ class UserCollaborativeListsView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-
         queryset = CollaborativeList.objects.filter(
             Q(user=user) | Q(team__member1=user) | Q(team__member2=user)
         ).annotate(
-            listitem_count=Count('items'),
-            done_item_count=Sum('items__done')
+            listitem_count=Count('item'),
+            done_item_count=Sum('item__done')
         )
 
         return queryset
