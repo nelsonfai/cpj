@@ -16,7 +16,7 @@ urlpatterns = [
     path('collaborative-lists/', UserCollaborativeListsView.as_view(), name='collaborative-list-create'),#used
     path('create-collabotive-list/', CollaborativeListCreateView.as_view(), name='create-collaborative-list'),
     # Endpoint for retrieving, updating, and deleting a specific CollaborativeList
-    path('collaborative-lists/<int:pk>/', CollaborativeListRetrieveUpdateDestroyView.as_view(), name='collaborative-list-detail'),
+    path('collaborative-lists/<int:pk>/', CollaborativeListRetrieveUpdateDestroyView.as_view(), name='collaborative-list-detail'),#used
     path('user-collaborative-lists/', UserCollaborativeListsView.as_view(), name='user-collaborative-lists'),
     path('collaborative-lists/<int:pk>/items/', CollaborativeListItemsView.as_view(), name='collaborative-list-items'),#used
 

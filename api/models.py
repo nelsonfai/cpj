@@ -45,7 +45,7 @@ class Team(models.Model):
     is_premium = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Team {self.unique_id} with members: {self.member1.name}, {self.member2.name if self.member2 else 'None'}"
+        return f"Team {self.unique_id} "
 
 class CollaborativeList(models.Model):
     team = models.ForeignKey('Team',on_delete=models.CASCADE,null=True,blank=True)
