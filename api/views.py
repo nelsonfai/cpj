@@ -6,7 +6,7 @@ from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeLi
 from rest_framework.authtoken.views import ObtainAuthToken,APIView
 from rest_framework.permissions import IsAuthenticated
 from .models import CollaborativeList,Item
-from .permissions import IsOwnerOrTeamMember
+from .permissions import IsOwnerOrTeamMember,IsItemOwnerOrTeamMember
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from django.urls import get_resolver
@@ -133,7 +133,7 @@ class ItemCreateView(generics.CreateAPIView):
     API endpoint for creating a new Item.
     """
     serializer_class = ItemSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
+    permission_classes = [permissions.IsAuthenticated, IsItemOwnerOrTeamMember]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -144,7 +144,7 @@ class ItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
+    permission_classes = [permissions.IsAuthenticated, IsItemOwnerOrTeamMember]
 
     def perform_update(self, serializer):
         serializer.save(user=self.request.user)
