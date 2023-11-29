@@ -13,7 +13,8 @@ from django.urls import get_resolver
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from .authentication import EmailBackend
-
+from rest_framework.authtoken.serializers import AuthTokenSerializer
+from django.contrib.auth import authenticate
 
 
 @api_view(['GET'])
@@ -48,18 +49,22 @@ class SignUpView(generics.CreateAPIView):
         headers = self.get_success_headers(serializer.data)
         return Response({'token': token.key}, status=status.HTTP_201_CREATED, headers=headers)
 
-class LoginView(ObtainAuthToken):
-    serializer_class = CustomAuthTokenSerializer
+class LoginView(generics.GenericAPIView):
+    serializer_class = AuthTokenSerializer
     permission_classes = [permissions.AllowAny]
-    authentication_classes = [EmailBackend]  # Use the custom authentication class
 
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
-        return Response({'token': token.key, 'user_id': user.pk, 'email': user.email}, status=status.HTTP_200_OK)
+        email = request.data.get('email')
+        password = request.data.get('password')
 
+        if email and password:
+            user = authenticate(request=request, email=email, password=password)
+
+            if user:
+                token, created = Token.objects.get_or_create(user=user)
+                return Response({'token': token.key, 'user_id': user.pk, 'email': user.email}, status=status.HTTP_200_OK)
+
+        return Response({'detail': 'Unable to log in with provided credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 class UserProfileUpdateView(generics.RetrieveUpdateAPIView):
     serializer_class = CustomUserSerializer
     permission_classes = [IsAuthenticated]
