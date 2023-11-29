@@ -133,7 +133,7 @@ class ItemCreateView(generics.CreateAPIView):
     API endpoint for creating a new Item.
     """
     serializer_class = ItemSerializer
-    permission_classes = [permissions.IsAuthenticated, IsCollaborativeListMember]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -144,7 +144,7 @@ class ItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
-    permission_classes = [permissions.IsAuthenticated, IsCollaborativeListMember]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
 
     def perform_update(self, serializer):
         serializer.save(user=self.request.user)

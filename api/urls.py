@@ -5,19 +5,19 @@ from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,Logo
 urlpatterns = [
     path('list-endpoints/', list_endpoints, name='list-endpoints'),
 
-    path('signup/', SignUpView.as_view(), name='signup'),
-    path('login/', LoginView.as_view(), name='login'),
-    path('logout/', LogoutView.as_view(), name='logout'),
+    path('signup/', SignUpView.as_view(), name='signup'), #used
+    path('login/', LoginView.as_view(), name='login'),#used
+    path('logout/', LogoutView.as_view(), name='logout'),#used
 
-    path('update-profile/', UserProfileUpdateView.as_view(), name='update-profile'),
-    path('profile-info/', UserInfoView.as_view(), name='profile-info'),
+    path('update-profile/', UserProfileUpdateView.as_view(), name='update-profile'),#used
+    path('profile-info/', UserInfoView.as_view(), name='profile-info'),#used
 
     # Get all Collaborative lists in which iser is user or t.m1 or t.m2
-    path('collaborative-lists/', UserCollaborativeListsView.as_view(), name='collaborative-list-create'),
+    path('collaborative-lists/', UserCollaborativeListsView.as_view(), name='collaborative-list-create'),#used
     # Endpoint for retrieving, updating, and deleting a specific CollaborativeList
     path('collaborative-lists/<int:pk>/', CollaborativeListRetrieveUpdateDestroyView.as_view(), name='collaborative-list-detail'),
     path('user-collaborative-lists/', UserCollaborativeListsView.as_view(), name='user-collaborative-lists'),
-    path('collaborative-lists/<int:pk>/items/', CollaborativeListItemsView.as_view(), name='collaborative-list-items'),
+    path('collaborative-lists/<int:pk>/items/', CollaborativeListItemsView.as_view(), name='collaborative-list-items'),#used
 
 
      # Endpoint for creating a new Item
