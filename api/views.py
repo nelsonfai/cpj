@@ -115,7 +115,7 @@ class CollaborativeListCreateView(generics.CreateAPIView):
 
 class CollaborativeListRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = CollaborativeList.objects.all()
-    serializer_class = CollaborativeListSerializerExtended
+    serializer_class = CollaborativeListSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
 
 
