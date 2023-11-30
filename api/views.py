@@ -15,6 +15,7 @@ from django.shortcuts import get_object_or_404
 from .authentication import EmailBackend
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from django.contrib.auth import authenticate
+from rest_framework.generics import ListAPIView
 
 
 @api_view(['GET'])
@@ -139,14 +140,20 @@ class ItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         return Response(status=204)
 
 
-class CollaborativeListItemsView(generics.ListAPIView):
+class CollaborativeListItemsView(ListAPIView):
     serializer_class = ItemSerializerExtended
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
+
     def get_queryset(self):
-        collaborative_list = get_object_or_404(
-            CollaborativeList, pk=self.kwargs['pk']
-        )
-        return Item.objects.filter(list=collaborative_list)
+        collaborative_list = get_object_or_404(CollaborativeList, pk=self.kwargs['pk'])
+        return collaborative_list.item_set.all()
+
+    def get_serializer_context(self):
+        # Pass the collaborative list instance to the serializer context
+        context = super().get_serializer_context()
+        collaborative_list = get_object_or_404(CollaborativeList, pk=self.kwargs['pk'])
+        context.update({'collaborative_list': collaborative_list})
+        return context
 
 from django.db.models import Count, Sum
 
