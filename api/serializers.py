@@ -1,6 +1,6 @@
 # couples_diary_backend/api/serializers.py
 from rest_framework import serializers
-from .models import CustomUser,CollaborativeList,Item
+from .models import CustomUser,CollaborativeList,Item,Team
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -80,3 +80,17 @@ class CustomAuthTokenSerializer(AuthTokenSerializer):
 
         return super().validate(attrs)
 
+
+class TeamSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Team
+        fields = ['id', 'unique_id', 'member1', 'member2', 'is_premium']
+        read_only_fields = ['id', 'unique_id']
+
+    validators = [
+        serializers.UniqueTogetherValidator(
+            queryset=Team.objects.all(),
+            fields=['member1', 'member2'],
+            message='Members must be unique in a team.'
+        )
+    ]

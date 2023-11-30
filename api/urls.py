@@ -1,6 +1,6 @@
 
 from django.urls import path
-from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView
+from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView
 
 urlpatterns = [
     path('list-endpoints/', list_endpoints, name='list-endpoints'),
@@ -11,6 +11,7 @@ urlpatterns = [
 
     path('update-profile/', UserProfileUpdateView.as_view(), name='update-profile'),#used
     path('profile-info/', UserInfoView.as_view(), name='profile-info'),#used
+    path('team-invitation/<str:invite_code>/', TeamInvitationView.as_view(), name='team-invitation'),
 
     # Get all Collaborative lists in which iser is user or t.m1 or t.m2
     path('collaborative-lists/', UserCollaborativeListsView.as_view(), name='collaborative-list-create'),#used

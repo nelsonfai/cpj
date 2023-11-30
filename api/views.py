@@ -2,10 +2,10 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer,CollaborativeListSerializerExtended
+from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer,CollaborativeListSerializerExtended,TeamSerializer
 from rest_framework.authtoken.views import ObtainAuthToken,APIView
 from rest_framework.permissions import IsAuthenticated
-from .models import CollaborativeList,Item
+from .models import CollaborativeList,Item,CustomUser,Team
 from .permissions import IsOwnerOrTeamMember,IsItemOwnerOrTeamMember
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -16,7 +16,7 @@ from .authentication import EmailBackend
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from django.contrib.auth import authenticate
 from rest_framework.generics import ListAPIView
-
+import random,string
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -180,3 +180,52 @@ class UserCollaborativeListsView(generics.ListAPIView):
 
         return queryset
 
+class TeamInvitationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, invite_code):
+        # Get the logged-in user
+        current_user = self.request.user
+
+        # Check if the user is already in a team
+        if current_user.team:
+            return Response({'error': 'User is already in a team.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Find the user with the invite code
+        invited_user = get_object_or_404(CustomUser, team_invite_code=invite_code)
+
+        # Check if the invited user is the same as the logged-in user
+        if invited_user == current_user:
+            return Response({'error': 'Cannot create a team with yourself.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if the invited user is already in a team
+        if invited_user.team:
+            return Response({'error': 'Invited user is already in a team.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create a new team with the invited user as member 1 and the current user as member 2
+        team = Team.objects.create(
+            unique_id=self.generate_unique_team_id(),
+            member1=invited_user,
+            member2=current_user,
+        )
+
+        # Clear the invite code for the invited user
+        invited_user.team_invite_code = None
+        invited_user.save()
+
+        # Serialize the users and team for the response
+        invited_user_serializer = CustomUserSerializer(invited_user)
+        current_user_serializer = CustomUserSerializer(current_user)
+        team_serializer = TeamSerializer(team)
+
+        response_data = {
+            'invited_user': invited_user_serializer.data,
+            'current_user': current_user_serializer.data,
+            'team': team_serializer.data,
+        }
+
+        return Response(response_data, status=status.HTTP_201_CREATED)
+
+    def generate_unique_team_id(self):
+        # You should implement a method to generate a unique team ID
+        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
