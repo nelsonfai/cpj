@@ -139,13 +139,15 @@ class ItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         instance.delete()
         return Response(status=204)
 
+
+
 class CollaborativeListItemsView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
     def get(self, request, pk):
         collaborative_list = get_object_or_404(CollaborativeList, pk=pk)
         
         # Serialize collaborative list data
-        list_serializer = CollaborativeListSerializerExtended(collaborative_list)
+        list_serializer = CollaborativeListSerializer(collaborative_list)
         list_info = list_serializer.data
 
         # Serialize items data
