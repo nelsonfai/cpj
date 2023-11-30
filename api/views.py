@@ -139,21 +139,27 @@ class ItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         instance.delete()
         return Response(status=204)
 
-
-class CollaborativeListItemsView(ListAPIView):
-    serializer_class = ItemSerializerExtended
+class CollaborativeListItemsView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
+    def get(self, request, pk):
+        collaborative_list = get_object_or_404(CollaborativeList, pk=pk)
+        
+        # Serialize collaborative list data
+        list_serializer = CollaborativeListSerializerExtended(collaborative_list)
+        list_info = list_serializer.data
 
-    def get_queryset(self):
-        collaborative_list = get_object_or_404(CollaborativeList, pk=self.kwargs['pk'])
-        return collaborative_list.item_set.all()
+        # Serialize items data
+        items_queryset = collaborative_list.item_set.all()
+        items_serializer = ItemSerializer(items_queryset, many=True)
+        items_data = items_serializer.data
 
-    def get_serializer_context(self):
-        # Pass the collaborative list instance to the serializer context
-        context = super().get_serializer_context()
-        collaborative_list = get_object_or_404(CollaborativeList, pk=self.kwargs['pk'])
-        context.update({'collaborative_list': collaborative_list})
-        return context
+        # Construct the expected data structure
+        expected_data = {
+            'list_info': list_info,
+            'items': items_data,
+        }
+
+        return Response(expected_data)
 
 from django.db.models import Count, Sum
 

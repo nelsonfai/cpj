@@ -66,13 +66,6 @@ class ItemSerializer(serializers.ModelSerializer):
         model = Item
         fields = ['id', 'list', 'text', 'done']
 
-class ItemSerializerExtended(serializers.ModelSerializer):
-    list_info = CollaborativeListSerializer(source='list', read_only=True)
-
-    class Meta:
-        model = Item
-        fields = ['id', 'list', 'text', 'done', 'list_info']
-
 
 
 class CustomAuthTokenSerializer(AuthTokenSerializer):
