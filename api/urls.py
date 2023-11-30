@@ -20,7 +20,6 @@ urlpatterns = [
     path('user-collaborative-lists/', UserCollaborativeListsView.as_view(), name='user-collaborative-lists'),
     path('collaborative-lists/<int:pk>/items/', CollaborativeListItemsView.as_view(), name='collaborative-list-items'),#used
 
-
      # Endpoint for creating a new Item
     path('items/', ItemCreateView.as_view(), name='item-create'),
 

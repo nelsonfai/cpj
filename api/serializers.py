@@ -31,12 +31,6 @@ class UserInfoSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         return Item.objects.create(**validated_data)
 """
-class ItemSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Item
-        fields = ['id', 'list', 'text', 'done']
-
-
 
 class CollaborativeListSerializer(serializers.ModelSerializer):
     class Meta:
@@ -66,6 +60,22 @@ class CollaborativeListSerializerExtended(serializers.ModelSerializer):
 
     def get_member2_name(self, obj):
         return obj.team.member2.name if obj.team and obj.team.member2 else None
+
+class ItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Item
+        fields = ['id', 'list', 'text', 'done']
+
+
+class ItemSerializerExtended(serializers.ModelSerializer):
+    list_info = CollaborativeListSerializer(source='list', read_only=True)
+
+    class Meta:
+        model = Item
+        fields = ['id', 'list', 'text', 'done', 'list_info']
+
+
+
 
 
 class CustomAuthTokenSerializer(AuthTokenSerializer):

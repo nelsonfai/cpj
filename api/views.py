@@ -2,7 +2,7 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer,CollaborativeListSerializerExtended
+from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer,CollaborativeListSerializerExtended,ItemSerializerExtended
 from rest_framework.authtoken.views import ObtainAuthToken,APIView
 from rest_framework.permissions import IsAuthenticated
 from .models import CollaborativeList,Item
@@ -140,14 +140,13 @@ class ItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class CollaborativeListItemsView(generics.ListAPIView):
-    serializer_class = ItemSerializer
+    serializer_class = ItemSerializerExtended
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
     def get_queryset(self):
         collaborative_list = get_object_or_404(
             CollaborativeList, pk=self.kwargs['pk']
         )
         return Item.objects.filter(list=collaborative_list)
-
 
 from django.db.models import Count, Sum
 
