@@ -165,3 +165,4 @@ class UserCollaborativeListsView(generics.ListAPIView):
         )
 
         return queryset
+
