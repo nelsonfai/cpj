@@ -187,8 +187,9 @@ class TeamInvitationView(APIView):
         # Get the logged-in user
         current_user = self.request.user
 
-        # Check if the user is already in a team
-        if current_user.team:
+        # Check if the user is already a member of any team
+        user_in_team = Team.objects.filter(Q(member1=current_user) | Q(member2=current_user)).exists()
+        if user_in_team:
             return Response({'error': 'User is already in a team.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Find the user with the invite code
@@ -198,8 +199,9 @@ class TeamInvitationView(APIView):
         if invited_user == current_user:
             return Response({'error': 'Cannot create a team with yourself.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check if the invited user is already in a team
-        if invited_user.team:
+        # Check if the invited user is already a member of any team
+        invited_user_in_team = Team.objects.filter(Q(member1=invited_user) | Q(member2=invited_user)).exists()
+        if invited_user_in_team:
             return Response({'error': 'Invited user is already in a team.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Create a new team with the invited user as member 1 and the current user as member 2
