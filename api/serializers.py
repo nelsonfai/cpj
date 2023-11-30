@@ -67,7 +67,7 @@ class ItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'list', 'text', 'done']
 
 class ItemSerializerExtended(serializers.ModelSerializer):
-    list_info = CollaborativeListSerializerExtended(source='collaborative_list', read_only=True)
+    list_info = CollaborativeListSerializer(source='list', read_only=True)
 
     class Meta:
         model = Item
