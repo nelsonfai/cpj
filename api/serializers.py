@@ -26,7 +26,8 @@ class UserInfoSerializer(serializers.ModelSerializer):
         fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam')
 
     def get_hasTeam(self, user):
-        return user.team_member1.exists() or user.team_member2.exists()
+        return user.team_member1 is not None or user.team_member2 is not None
+
     
 """class ItemSerializer(serializers.ModelSerializer):
     class Meta:
