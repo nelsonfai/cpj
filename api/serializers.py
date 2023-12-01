@@ -19,11 +19,15 @@ class CustomUserSerializer(serializers.ModelSerializer):
         return user
 
 class UserInfoSerializer(serializers.ModelSerializer):
+    hasTeam = serializers.SerializerMethodField()
+
     class Meta:
         model = CustomUser
-        fields = ('id', 'email', 'name', 'profile_pic','team_invite_code')
+        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam')
 
-
+    def get_hasTeam(self, user):
+        return user.team_member1.exists() or user.team_member2.exists()
+    
 """class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
