@@ -267,6 +267,7 @@ class HabitListView(APIView):
             
             # Parse the target_date string to a datetime object
             formatted_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+            day_of_week = formatted_date.strftime('%A')  # Get the day of the week
 
             habits_data = []
             for habit in user_habits:
@@ -274,15 +275,22 @@ class HabitListView(APIView):
                     habit=habit, user_id=user_id, date=formatted_date
                 ).first()
 
-                habit_data = {
-                    'id':habit.pk,
-                    'color':habit.color,
-                    "name": habit.name,
-                    "description": habit.description,
-                    "done": progress_instance.progress if progress_instance else False,
-                }
+                # Check if the habit should be included based on frequency and selected days
+                include_habit = (
+                    habit.frequency == 'daily' or
+                    (habit.frequency == 'weekly' and day_of_week in habit.get_specific_days_as_list())
+                )
 
-                habits_data.append(habit_data)
+                if include_habit:
+                    habit_data = {
+                        'id':habit.pk,
+                        'color':habit.color,
+                        "name": habit.name,
+                        "description": habit.description,
+                        "done": progress_instance.progress if progress_instance else False,
+                    }
+
+                    habits_data.append(habit_data)
 
             return Response(habits_data, status=status.HTTP_200_OK)
 
