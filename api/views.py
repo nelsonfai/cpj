@@ -251,26 +251,32 @@ class DailyProgressCreateView(generics.CreateAPIView):
 
 
 # Get all Habits for User and related data for the given day
-class HabitListView(generics.ListAPIView):
-    serializer_class = HabitSerializer
+class HabitListView(APIView):
     permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        date_str = self.request.query_params.get('date', None)
-
-        if not date_str:
-            return Habit.objects.none()
-
+    def get(self, request, user_id, target_date):
         try:
-            date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        except ValueError:
-            return Habit.objects.none()
+            # Ensure that the user making the request matches the requested user_id
+            if request.user.id != int(user_id):
+                return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
-        habits = Habit.objects.filter(user=user)
+            user_habits = Habit.objects.filter(user_id=user_id)
+            formatted_date = datetime.strptime(target_date, '%Y-%m-%d').date()
 
-        for habit in habits:
-            # Check if there is any DailyProgress instance for the habit on the specified day
-            habit.done = DailyProgress.objects.filter(habit=habit, user=user, date=date).exists()
+            habits_data = []
+            for habit in user_habits:
+                progress_instance = DailyProgress.objects.filter(
+                    habit=habit, user_id=user_id, date=formatted_date
+                ).first()
+                habit_data = {
+                    'id':habit.id,
+                    'color':habit.color,
+                    "name": habit.name,
+                    "description": habit.description,
+                    "done": progress_instance.progress if progress_instance else False,
+                }
+                habits_data.append(habit_data)
 
-        return habits
+            return Response(habits_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

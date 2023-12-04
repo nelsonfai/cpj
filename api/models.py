@@ -87,9 +87,10 @@ class Habit(models.Model):
 
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     team = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, blank=True)
+    color= models.CharField(max_length=255,blank=True,null=True)
     name = models.CharField(max_length=255)
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
-    description = models.TextField()
+    description = models.TextField(blank=True,null=True)
     start_date = models.DateField()
     end_date = models.DateField()
     reminder_time = models.TimeField(null=True, blank=True)
