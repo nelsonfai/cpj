@@ -17,7 +17,7 @@ from rest_framework.authtoken.serializers import AuthTokenSerializer
 from django.contrib.auth import authenticate
 from rest_framework.generics import ListAPIView
 import random,string
-import datetime
+from datetime import datetime 
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
