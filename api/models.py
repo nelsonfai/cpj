@@ -89,13 +89,23 @@ class Habit(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, blank=True)
     color= models.CharField(max_length=255,blank=True,null=True)
     name = models.CharField(max_length=255)
-    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
+    frequency = models.CharField(max_length=50)
     description = models.TextField(blank=True,null=True)
     start_date = models.DateField()
     end_date = models.DateField()
     reminder_time = models.TimeField(null=True, blank=True)
-    specific_days_of_week = models.CharField(max_length=50, null=True, blank=True, choices=DAYS_OF_WEEK_CHOICES)
+    specific_days_of_week = models.CharField(max_length=255, null=True, blank=True)
 
+    def get_specific_days_as_list(self):
+        if self.specific_days_of_week:
+            return self.specific_days_of_week.split(',')
+        return []
+
+    def set_specific_days_from_list(self, days_list):
+        self.specific_days_of_week = ','.join(days_list)
+
+    def __str__(self):
+        return self.name
     def __str__(self):
         return self.name
 

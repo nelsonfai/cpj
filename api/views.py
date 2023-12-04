@@ -288,3 +288,40 @@ class HabitListView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mark_habit_as_done(request, habit_id):
+    habit = get_object_or_404(Habit, id=habit_id, user=request.user)
+
+    # Get the date from the request (assuming it is in the format 'YYYY-MM-DD')
+    date_str = request.data.get('date')
+    
+    if not date_str:
+        return Response({'error': 'Date is required'}, status=400)
+
+    try:
+        date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        return Response({'error': 'Invalid date format'}, status=400)
+
+    # Check if a DailyProgress instance already exists for the same habit, user, and date
+    existing_daily_progress = DailyProgress.objects.filter(
+        habit=habit,
+        user=request.user,
+        date=date
+    ).first()
+
+    if existing_daily_progress:
+        # If an instance already exists, delete it
+        existing_daily_progress.delete()
+    else:
+        # If no instance exists, create a new DailyProgress instance
+        DailyProgress.objects.create(
+            habit=habit,
+            user=request.user,
+            date=date,
+            progress=True  # Set progress as done
+        )
+
+    return Response({'success': True})
