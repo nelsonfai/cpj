@@ -1,6 +1,6 @@
 
 from django.urls import path
-from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView
+from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView
 
 urlpatterns = [
     path('list-endpoints/', list_endpoints, name='list-endpoints'),
@@ -26,5 +26,10 @@ urlpatterns = [
 
     # Endpoint for retrieving, updating, and deleting a specific Item
     path('items/<int:pk>/', ItemRetrieveUpdateDestroyView.as_view(), name='item-detail'), #used
+
+    # ALL Habit Views
+    path('habits/create/', HabitCreateView.as_view(), name='habit-create'),
+    path('daily-progress/create/', DailyProgressCreateView.as_view(), name='daily-progress-create'),
+    path('habits/', HabitListView.as_view(), name='habit-list'),
 
 ]

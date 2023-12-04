@@ -65,29 +65,43 @@ class Item(models.Model):
     def __str__(self):
         return self.text
 
-class DiaryEntry(models.Model):
-    team = models.ForeignKey('Team', on_delete=models.CASCADE)
-    content = models.TextField()
-    date = models.DateField()
-    def __str__(self):
-        return f"Entry on {self.date} for Team {self.team.unique_id}"
 
-class MoodTracker(models.Model):
-    team = models.ForeignKey('Team', on_delete=models.CASCADE)
+# Daily Habit  Tracker 
+class Habit(models.Model):
+    FREQUENCY_CHOICES = [
+        ('daily', 'Daily'),
+        ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'),
+        # Add more choices as needed
+    ]
+
+    DAYS_OF_WEEK_CHOICES = [
+        ('Monday', 'Monday'),
+        ('Tuesday', 'Tuesday'),
+        ('Wednesday', 'Wednesday'),
+        ('Thursday', 'Thursday'),
+        ('Friday', 'Friday'),
+        ('Saturday', 'Saturday'),
+        ('Sunday', 'Sunday'),
+    ]
+
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    mood = models.CharField(max_length=50)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, blank=True)
+    name = models.CharField(max_length=255)
+    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
+    description = models.TextField()
+    start_date = models.DateField()
+    end_date = models.DateField()
+    reminder_time = models.TimeField(null=True, blank=True)
+    specific_days_of_week = models.CharField(max_length=50, null=True, blank=True, choices=DAYS_OF_WEEK_CHOICES)
+
+    def __str__(self):
+        return self.name
+
+class DailyProgress(models.Model):
+    habit = models.ForeignKey(Habit, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     date = models.DateField()
-
+    progress = models.BooleanField(default=False)  
     def __str__(self):
-        return f"Mood: {self.mood} on {self.date} for CustomUser {self.user.username} in Team {self.team.unique_id}"
-
-class BillingInfo(models.Model):
-    team = models.OneToOneField(Team, on_delete=models.CASCADE)
-    card_number = models.CharField(max_length=16)
-    expiration_date = models.DateField()
-    # Add other billing information fields as needed
-
-    def __str__(self):
-        return f"Billing info for team {self.team.unique_id}"
-
-
+        return f"{self.user.email}'s progress for {self.habit.name} on {self.date}"

@@ -1,6 +1,6 @@
 # couples_diary_backend/api/serializers.py
 from rest_framework import serializers
-from .models import CustomUser,CollaborativeList,Item,Team
+from .models import CustomUser,CollaborativeList,Item,Team,Habit,DailyProgress
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -99,3 +99,15 @@ class TeamSerializer(serializers.ModelSerializer):
             message='Members must be unique in a team.'
         )
     ]
+
+
+### Daily Habit Tracker Serializers
+class HabitSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Habit
+        fields = '__all__'
+
+class DailyProgressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DailyProgress
+        fields = '__all__'

@@ -2,10 +2,10 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer,CollaborativeListSerializerExtended,TeamSerializer
+from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer,CollaborativeListSerializerExtended,TeamSerializer,HabitSerializer,DailyProgressSerializer
 from rest_framework.authtoken.views import ObtainAuthToken,APIView
 from rest_framework.permissions import IsAuthenticated
-from .models import CollaborativeList,Item,CustomUser,Team
+from .models import CollaborativeList,Item,CustomUser,Team,Habit,DailyProgress
 from .permissions import IsOwnerOrTeamMember,IsItemOwnerOrTeamMember
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -17,6 +17,7 @@ from rest_framework.authtoken.serializers import AuthTokenSerializer
 from django.contrib.auth import authenticate
 from rest_framework.generics import ListAPIView
 import random,string
+import datetime
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -231,3 +232,45 @@ class TeamInvitationView(APIView):
     def generate_unique_team_id(self):
         # You should implement a method to generate a unique team ID
         return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    
+### Daily Habit tacker views
+
+class HabitCreateView(generics.CreateAPIView):
+    serializer_class = HabitSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class DailyProgressCreateView(generics.CreateAPIView):
+    serializer_class = DailyProgressSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+# Get all Habits for User and related data for the given day
+class HabitListView(generics.ListAPIView):
+    serializer_class = HabitSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        date_str = self.request.query_params.get('date', None)
+
+        if not date_str:
+            return Habit.objects.none()
+
+        try:
+            date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Habit.objects.none()
+
+        habits = Habit.objects.filter(user=user)
+
+        for habit in habits:
+            # Check if there is any DailyProgress instance for the habit on the specified day
+            habit.done = DailyProgress.objects.filter(habit=habit, user=user, date=date).exists()
+
+        return habits
