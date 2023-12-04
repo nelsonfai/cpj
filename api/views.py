@@ -253,13 +253,19 @@ class DailyProgressCreateView(generics.CreateAPIView):
 # Get all Habits for User and related data for the given day
 class HabitListView(APIView):
     permission_classes = [IsAuthenticated]
-    def get(self, request, user_id, target_date):
+
+    def post(self, request):
         try:
+            user_id = request.data.get('user_id')
+            target_date = request.data.get('target_date')
+
             # Ensure that the user making the request matches the requested user_id
             if request.user.id != int(user_id):
                 return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
             user_habits = Habit.objects.filter(user_id=user_id)
+            
+            # Parse the target_date string to a datetime object
             formatted_date = datetime.strptime(target_date, '%Y-%m-%d').date()
 
             habits_data = []
@@ -267,13 +273,15 @@ class HabitListView(APIView):
                 progress_instance = DailyProgress.objects.filter(
                     habit=habit, user_id=user_id, date=formatted_date
                 ).first()
+
                 habit_data = {
-                    'id':habit.id,
+                    'id':habit.pk,
                     'color':habit.color,
                     "name": habit.name,
                     "description": habit.description,
                     "done": progress_instance.progress if progress_instance else False,
                 }
+
                 habits_data.append(habit_data)
 
             return Response(habits_data, status=status.HTTP_200_OK)
