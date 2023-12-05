@@ -319,11 +319,14 @@ class HabitListView(APIView):
                         "done": progress_instance.progress if progress_instance else False,
                         "streak": streak,
                         'partner_done_count':partner_done_count,
-                        'partner_count':partner_count
-
+                        'partner_count':partner_count,
+                        'start_date':habit.start_date,
+                        'end_date':habit.end_date,
+                        'team':habit.team,
+                        'specific_days_of_week':habit.specific_days_of_week,
+                        'frequency': habit.frequency,
+                         'reminder_time': habit.reminder_time,
                     }
-
-                    habits_data.append(habit_data)
 
             return Response(habits_data, status=status.HTTP_200_OK)
 
