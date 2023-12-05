@@ -255,6 +255,7 @@ class HabitListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+
         try:
             user_id = request.data.get('user_id')
             target_date = request.data.get('target_date')
@@ -271,6 +272,7 @@ class HabitListView(APIView):
 
             habits_data = []
             for habit in user_habits:
+
                 progress_instance = DailyProgress.objects.filter(
                     habit=habit, user_id=user_id, date=formatted_date
                 ).first()
@@ -281,9 +283,34 @@ class HabitListView(APIView):
                     (habit.frequency == 'weekly' and day_of_week in habit.get_specific_days_as_list())
                 )
 
+                team = habit.team
+                partner_count = 1
+                partner_done_count = 0
+                if progress_instance:
+                    partner_done_count = 1
+
+
+                if include_habit and team:
+                    # Check if there is a progress instance for member 1
+                    partner_count = 2
+                    member_1_progress = DailyProgress.objects.filter(
+                        habit=habit, user_id=team.member1.id, date=formatted_date
+                    ).first()
+
+                    # Check if there is a progress instance for member 2
+                    member_2_progress = DailyProgress.objects.filter(
+                        habit=habit, user_id=team.member2.id, date=formatted_date
+                    ).first()
+
+                    # If either member has progress, set partner_done to True
+                    if member_1_progress or member_2_progress:
+                        partner_done_count = 1
+                    if member_1_progress and member_2_progress:
+                        partner_done_count = 2
+
+
                 if include_habit:
                     streak = habit.calculate_streak(user_id, formatted_date)
-
                     habit_data = {
                         'id':habit.pk,
                         'color':habit.color,
@@ -291,6 +318,8 @@ class HabitListView(APIView):
                         "description": habit.description,
                         "done": progress_instance.progress if progress_instance else False,
                         "streak": streak,
+                        'partner_done_count':partner_done_count,
+                        'partner_count':partner_count
 
                     }
 
@@ -300,6 +329,28 @@ class HabitListView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class HabitUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+    def put(self, request, habit_id):
+        habit = get_object_or_404(Habit, pk=habit_id)
+        serializer = HabitSerializer(habit, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class HabitDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+    def delete(self, request, habit_id):
+        habit = get_object_or_404(Habit, pk=habit_id)
+        # Check if the user making the request is the owner of the habit
+        if habit.user != request.user:
+            return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+        habit.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

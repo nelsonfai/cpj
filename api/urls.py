@@ -1,6 +1,6 @@
 
 from django.urls import path
-from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done
+from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done,HabitDeleteView,HabitUpdateView
 
 urlpatterns = [
     path('list-endpoints/', list_endpoints, name='list-endpoints'),
@@ -32,6 +32,6 @@ urlpatterns = [
     path('daily-progress/create/', DailyProgressCreateView.as_view(), name='daily-progress-create'),
     path('habits/', HabitListView.as_view(), name='habit-list'),
     path('habits/<int:habit_id>/mark-as-done/', mark_habit_as_done, name='mark_habit_as_done'),
-
-
+    path('habits/<int:habit_id>/update/', HabitUpdateView.as_view(), name='habit-update'),
+    path('habits/<int:habit_id>/delete/', HabitDeleteView.as_view(), name='habit-delete'),
 ]
