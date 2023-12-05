@@ -91,21 +91,20 @@ class Habit(models.Model):
 
     def calculate_streak(self, user_id, current_date):
         progress_instances = DailyProgress.objects.filter(
-            habit=self, user_id=user_id, progress=True
+            habit=self, user_id=user_id, progress=True, date__lte=current_date
         ).order_by('-date')
 
         streak = 0
-        current_streak = 0
         previous_date = current_date
 
         for progress_instance in progress_instances:
             if self.is_valid_streak_day(previous_date, progress_instance.date):
-                current_streak += 1
-                previous_date = progress_instance.date
+                streak += 1
+                previous_date = progress_instance.date - timedelta(days=1)
             else:
                 break
 
-        return current_streak
+        return streak
 
     def is_valid_streak_day(self, previous_date, current_date):
         if self.frequency == 'daily':
