@@ -95,19 +95,25 @@ class Habit(models.Model):
         ).order_by('-date')
 
         streak = 0
-        previous_date = current_date
+        has_instance_with_current_date = any(instance.date == current_date for instance in progress_instances)
+        
+        if has_instance_with_current_date:
+            previous_date = current_date
+        else:
+            previous_date = self.set_previous_day(date=current_date)
+
         for progress_instance in progress_instances:
             if progress_instance.date == previous_date:
                 streak += 1
-                previous_date = self.set_previous_day(current_date=previous_date)
+                previous_date = self.set_previous_day(date=previous_date)
             else:
                 break
 
         return streak
 
-    def set_previous_day(self, current_date):
+    def set_previous_day(self, date):
         if self.frequency == 'daily':
-            previous_date = current_date - timedelta(days=1)
+            previous_date = date - timedelta(days=1)
         elif self.frequency == 'weekly':
             selected_days = self.get_specific_days_as_list()
             day_mapping = {
