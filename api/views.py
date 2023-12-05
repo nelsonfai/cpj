@@ -322,7 +322,7 @@ class HabitListView(APIView):
                         'partner_count':partner_count,
                         'start_date':habit.start_date,
                         'end_date':habit.end_date,
-                        'team':habit.team,
+                        'team':habit.team.pk,
                         'specific_days_of_week':habit.specific_days_of_week,
                         'frequency': habit.frequency,
                          'reminder_time': habit.reminder_time,
