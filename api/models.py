@@ -96,7 +96,7 @@ class Habit(models.Model):
 
         streak = 0
         has_instance_with_current_date = any(instance.date == current_date for instance in progress_instances)
-        
+
         if has_instance_with_current_date:
             previous_date = current_date
         else:
@@ -125,14 +125,14 @@ class Habit(models.Model):
                 'saturday': 5,
                 'sunday': 6,
             }
-            current_weekday = current_date.weekday()
+            current_weekday =date.weekday()
             previous_weekday = current_weekday - 1
             while previous_weekday not in [day_mapping[day.lower()] for day in selected_days]:
                 previous_weekday = (previous_weekday - 1) % 7
             days_difference = current_weekday - previous_weekday
-            previous_date = current_date - timedelta(days=days_difference)
+            previous_date = date - timedelta(days=days_difference)
         else:
-            previous_date = current_date - timedelta(days=1)
+            previous_date = date - timedelta(days=1)
         return previous_date
 
     def __str__(self):
