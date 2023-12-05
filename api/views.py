@@ -328,6 +328,8 @@ class HabitListView(APIView):
                          'reminder_time': habit.reminder_time,
                     }
 
+                    habits_data.append(habit_data)
+
             return Response(habits_data, status=status.HTTP_200_OK)
 
         except Exception as e:
