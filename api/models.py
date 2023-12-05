@@ -94,10 +94,8 @@ class Habit(models.Model):
             habit=self, user_id=user_id, progress=True, date__lte=current_date
         ).order_by('-date')
 
-        has_instance_with_current_date = any(instance.date == current_date for instance in progress_instances)
-        streak = 1 if has_instance_with_current_date else 0
-
-        previous_date = self.set_previous_day(current_date=current_date)
+        streak = 0
+        previous_date = current_date
         for progress_instance in progress_instances:
             if progress_instance.date == previous_date:
                 streak += 1
