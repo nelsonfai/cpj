@@ -94,32 +94,45 @@ class Habit(models.Model):
             habit=self, user_id=user_id, progress=True, date__lte=current_date
         ).order_by('-date')
 
-        streak = 0
-        previous_date = current_date
+        has_instance_with_current_date = any(instance.date == current_date for instance in progress_instances)
+        streak = 1 if has_instance_with_current_date else 0
 
+        previous_date = self.set_previous_day(current_date=current_date)
         for progress_instance in progress_instances:
-            if self.is_valid_streak_day(previous_date, progress_instance.date):
+            if progress_instance.date == previous_date:
                 streak += 1
-                previous_date = progress_instance.date - timedelta(days=1)
+                previous_date = self.set_previous_day(current_date=previous_date)
             else:
                 break
 
         return streak
 
-    def is_valid_streak_day(self, previous_date, current_date):
+    def set_previous_day(self, current_date):
         if self.frequency == 'daily':
-            return current_date == previous_date - timedelta(days=1)
+            previous_date = current_date - timedelta(days=1)
         elif self.frequency == 'weekly':
-            return (
-                current_date == previous_date - timedelta(days=1)
-                and current_date.strftime('%A') in self.get_specific_days_as_list()
-            )
-        return False
+            selected_days = self.get_specific_days_as_list()
+            day_mapping = {
+                'monday': 0,
+                'tuesday': 1,
+                'wednesday': 2,
+                'thursday': 3,
+                'friday': 4,
+                'saturday': 5,
+                'sunday': 6,
+            }
+            current_weekday = current_date.weekday()
+            previous_weekday = current_weekday - 1
+            while previous_weekday not in [day_mapping[day.lower()] for day in selected_days]:
+                previous_weekday = (previous_weekday - 1) % 7
+            days_difference = current_weekday - previous_weekday
+            previous_date = current_date - timedelta(days=days_difference)
+        else:
+            previous_date = current_date - timedelta(days=1)
+        return previous_date
 
     def __str__(self):
-        return self.name
-    def __str__(self):
-        return self.name
+            return self.name
 
 class DailyProgress(models.Model):
     habit = models.ForeignKey(Habit, on_delete=models.CASCADE)
