@@ -282,12 +282,16 @@ class HabitListView(APIView):
                 )
 
                 if include_habit:
+                    streak = habit.calculate_streak(user_id, formatted_date)
+
                     habit_data = {
                         'id':habit.pk,
                         'color':habit.color,
                         "name": habit.name,
                         "description": habit.description,
                         "done": progress_instance.progress if progress_instance else False,
+                        "streak": streak,
+
                     }
 
                     habits_data.append(habit_data)
