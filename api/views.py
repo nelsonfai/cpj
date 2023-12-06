@@ -18,7 +18,7 @@ from django.contrib.auth import authenticate
 from rest_framework.generics import ListAPIView
 import random,string
 from datetime import datetime 
-
+import calendar
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def list_endpoints(request):
@@ -305,7 +305,7 @@ class HabitListView(APIView):
                         partner_done_count = 1
                     if member_1_progress and member_2_progress:
                         partner_done_count = 2
-                        
+
                 if team == None:
                     isSharedValue = False
                 else:
@@ -395,3 +395,98 @@ def mark_habit_as_done(request, habit_id):
         )
 
     return Response({'success': True})
+
+
+class HabitStatisticsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, habit_id):
+        habit = get_object_or_404(Habit, id=habit_id, user=request.user)
+
+        if not habit.team:
+            # If the habit does not belong to a team, return statistics for the logged-in user only
+            return self.calculate_statistics(habit, request.user, None, None)
+
+        # If the habit belongs to a team, get statistics for each team member
+        team = habit.team
+        members = [team.member1, team.member2]
+
+        statistics_data = []
+        for member in members:
+            statistics = self.calculate_statistics(habit, member, request.GET.get('start_date'), request.GET.get('end_date'))
+            statistics_data.append(statistics)
+
+        return Response(statistics_data, status=status.HTTP_200_OK)
+
+    def calculate_statistics(self, habit, user, start_date, end_date):
+        # If start_date and end_date are provided, filter progress instances for that period
+        if start_date and end_date:
+            progress_instances = DailyProgress.objects.filter(
+                habit=habit, user_id=user.id, progress=True, date__range=(start_date, end_date)
+            ).order_by('date')
+        else:
+            # If not, get progress instances for all time
+            progress_instances = DailyProgress.objects.filter(
+                habit=habit, user_id=user.id, progress=True
+            ).order_by('date')
+
+        # Calculate total completed days
+        total_completed_days = progress_instances.count()
+
+        # Calculate total undone days based on the habit's frequency
+        total_undone_days = self.calculate_total_undone_days(habit, start_date, end_date)
+
+        # Get a list of all days the user completed the habit
+        completed_days_list = progress_instances.values_list('date', flat=True)
+
+        # Format the data
+        statistics = {
+            'user_id': user.id,
+            'user_email': user.email,
+            'total_completed_days': total_completed_days,
+            'total_undone_days': total_undone_days,
+            'completed_days_list': list(completed_days_list),
+        }
+
+        return statistics
+
+    def calculate_total_undone_days(self, habit, start_date, end_date):
+        # If start_date and end_date are provided, calculate undone days for that period
+        if start_date and end_date:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            date_range = (start_date, end_date)
+
+            # Check if the date range covers a whole month or a whole year
+            is_month = start_date.month == end_date.month and start_date.year == end_date.year
+            is_year = start_date.year == end_date.year and start_date.month == 1 and end_date.month == 12
+        else:
+            # If not, calculate undone days for the entire existence of the habit
+            date_range = (habit.start_date, habit.end_date)
+            is_month = False
+            is_year = False
+
+        # Calculate total days based on frequency
+        total_days = (date_range[1] - date_range[0]).days + 1
+
+        if habit.frequency == 'weekly':
+            # Calculate total days based on specific days of the week
+            selected_days = habit.get_specific_days_as_list()
+
+            if is_month:
+                # If it's for a month, only consider the selected days in that month
+                total_days = sum(1 for day in range(1, calendar.monthrange(start_date.year, start_date.month)[1] + 1) if day.strftime('%A').lower() in selected_days)
+
+            elif is_year:
+                # If it's for a year, consider the selected days for the entire year
+                total_days = sum(1 for month in range(1, 13) for day in range(1, calendar.monthrange(start_date.year, month)[1] + 1) if day.strftime('%A').lower() in selected_days)
+
+        # Calculate total completed days
+        progress_instances = DailyProgress.objects.filter(
+            habit=habit, user_id=habit.user.id, progress=True, date__range=date_range
+        ).count()
+
+        # Calculate total undone days
+        total_undone_days = total_days - progress_instances
+
+        return total_undone_days
