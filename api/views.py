@@ -305,10 +305,11 @@ class HabitListView(APIView):
                         partner_done_count = 1
                     if member_1_progress and member_2_progress:
                         partner_done_count = 2
-                    if habit.team:
-                        isSharedValue = True
-                    else:
-                        isSharedValue = False
+                        
+                if team == None:
+                    isSharedValue = False
+                else:
+                    isSharedValue = True
 
                 if include_habit:
                     streak = habit.calculate_streak(user_id, formatted_date)
