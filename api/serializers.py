@@ -31,9 +31,9 @@ class UserInfoSerializer(serializers.ModelSerializer):
 
     def get_team_id(self, user):
         if user.team_member1:
-            return user.team_member1.team.id
+            return user.team_member1.id
         elif user.team_member2:
-            return user.team_member2.team.id
+            return user.team_member2.id
         return None
 """class ItemSerializer(serializers.ModelSerializer):
     class Meta:
