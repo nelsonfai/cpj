@@ -20,15 +20,21 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
 class UserInfoSerializer(serializers.ModelSerializer):
     hasTeam = serializers.SerializerMethodField()
+    team_id = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam')
+        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id')
 
     def get_hasTeam(self, user):
         return user.team_member1 is not None or user.team_member2 is not None
 
-    
+    def get_team_id(self, user):
+        if user.team_member1:
+            return user.team_member1.team.id
+        elif user.team_member2:
+            return user.team_member2.team.id
+        return None
 """class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item

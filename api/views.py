@@ -253,9 +253,7 @@ class DailyProgressCreateView(generics.CreateAPIView):
 # Get all Habits for User and related data for the given day
 class HabitListView(APIView):
     permission_classes = [IsAuthenticated]
-
     def post(self, request):
-
         try:
             user_id = request.data.get('user_id')
             target_date = request.data.get('target_date')
@@ -307,7 +305,10 @@ class HabitListView(APIView):
                         partner_done_count = 1
                     if member_1_progress and member_2_progress:
                         partner_done_count = 2
-
+                    if habit.team:
+                        isSharedValue = True
+                    else:
+                        isSharedValue = False
 
                 if include_habit:
                     streak = habit.calculate_streak(user_id, formatted_date)
@@ -322,10 +323,10 @@ class HabitListView(APIView):
                         'partner_count':partner_count,
                         'start_date':habit.start_date,
                         'end_date':habit.end_date,
-                        'team':habit.team.pk,
                         'specific_days_of_week':habit.specific_days_of_week,
                         'frequency': habit.frequency,
                          'reminder_time': habit.reminder_time,
+                         'isShared':isSharedValue
                     }
 
                     habits_data.append(habit_data)
