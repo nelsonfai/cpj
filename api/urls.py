@@ -1,7 +1,9 @@
 
 from django.urls import path
 from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done,HabitDeleteView,HabitUpdateView,HabitStatisticsView
-
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.conf.urls.static import static
+from django.conf import settings
 urlpatterns = [
     path('list-endpoints/', list_endpoints, name='list-endpoints'),
 
@@ -37,3 +39,6 @@ urlpatterns = [
     path('habit/<int:habit_id>/statistics/', HabitStatisticsView.as_view(), name='habit_statistics'),
 
 ]
+
+urlpatterns+=staticfiles_urlpatterns()
+urlpatterns +=static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
