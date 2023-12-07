@@ -438,7 +438,8 @@ class HabitStatisticsView(APIView):
 
         statistics = {
             'user_id': user.id,
-            'user_email': user.email,
+            'user_name': user.name,
+            'profile':user.profile_pic,
             'total_completed_days': total_completed_days,
             'total_undone_days': total_undone_days,
             'completed_days_list': list(completed_days_list),
