@@ -486,7 +486,7 @@ class HabitStatisticsView(APIView):
         ).order_by('date')
 
         total_completed_days = progress_instances.count()
-        total_undone_days = self.calculate_total_undone_days(habit, user, start_date, end_date)
+        total_undone_days = self.calculate_total_undone_days(habit, user, start_date, end_date,total_completed_days)
         completed_days_list = progress_instances.values_list('date', flat=True)
         if user.profile_pic:
             profile_pic = user.profile_pic.url
@@ -501,23 +501,21 @@ class HabitStatisticsView(APIView):
             'total_undone_days': total_undone_days,
             'completed_days_list': list(completed_days_list),
         }
-
         return statistics
 
-    def calculate_total_undone_days(self, habit, user, start_date, end_date):
+    def calculate_total_undone_days(self, habit, user, start_date, end_date,total_completed_days):
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
         date_range = (start_date, end_date)
-
-        total_days = (date_range[1] - date_range[0]).days + 1
+        total_days = 0
+        if habit.frequency == 'daily':
+            total_days = (date_range[1] - date_range[0]).days + 1
         if habit.frequency == 'weekly':
-            selected_days = habit.get_specific_days_as_list()
-            total_days = len([day for day in range((end_date - start_date).days + 1) if (start_date + timedelta(days=day)).strftime('%A').lower() in selected_days])
-
-        progress_instances = DailyProgress.objects.filter(
-            habit=habit, user_id=user.id, progress=True, date__range=date_range
-        ).count()
-
-        total_undone_days = total_days - progress_instances
-
+            selected_days = [day.lower() for day in habit.get_specific_days_as_list()]
+            print('Selected list',selected_days)
+            total_days = sum(1 for day in date_range if day.strftime('%A').lower() in selected_days)
+            print('total_days',total_days)
+        total_undone_days = total_days - total_completed_days
+        print(total_undone_days)
         return total_undone_days
