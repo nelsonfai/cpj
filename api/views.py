@@ -453,7 +453,6 @@ class HabitStatisticsView(APIView):
             # If the habit does not belong to a team, return statistics for the logged-in user only
             partner1 = self.calculate_statistics(habit, request.user, request.GET.get('start_date'), request.GET.get('end_date'))
             partner2 = {}
-
         else:
             team = habit.team
             partner1 = self.calculate_statistics(habit, request.user, request.GET.get('start_date'), request.GET.get('end_date'))

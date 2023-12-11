@@ -49,7 +49,7 @@ class Team(models.Model):
         return f"Team {self.unique_id} "
 
 class CollaborativeList(models.Model):
-    team = models.ForeignKey('Team',on_delete=models.CASCADE,null=True,blank=True)
+    team = models.ForeignKey('Team',on_delete=models.SET_NULL,null=True,blank=True)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE ,null=True,blank=True )
     title = models.CharField(max_length=255)
     color = models.CharField(max_length=40,)
@@ -71,7 +71,7 @@ class Item(models.Model):
 class Habit(models.Model):
 
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, blank=True)
+    team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
     color= models.CharField(max_length=255,blank=True,null=True)
     name = models.CharField(max_length=255)
     frequency = models.CharField(max_length=50)
