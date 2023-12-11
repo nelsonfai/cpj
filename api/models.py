@@ -125,18 +125,21 @@ class Habit(models.Model):
                 'saturday': 5,
                 'sunday': 6,
             }
-            current_weekday =date.weekday()
-            previous_weekday = current_weekday - 1
+            current_weekday = date.weekday()
+
+            # Find the previous selected day
+            previous_weekday = current_weekday
             while previous_weekday not in [day_mapping[day.lower()] for day in selected_days]:
                 previous_weekday = (previous_weekday - 1) % 7
-            days_difference = current_weekday - previous_weekday
+
+            days_difference = (current_weekday - previous_weekday) % 7
             previous_date = date - timedelta(days=days_difference)
         else:
             previous_date = date - timedelta(days=1)
         return previous_date
 
     def __str__(self):
-            return self.name
+        return self.name
 
 class DailyProgress(models.Model):
     habit = models.ForeignKey(Habit, on_delete=models.CASCADE)

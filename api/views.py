@@ -19,6 +19,9 @@ from rest_framework.generics import ListAPIView
 import random,string
 from datetime import datetime 
 import calendar
+from rest_framework.exceptions import PermissionDenied
+from datetime import timedelta
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def list_endpoints(request):
@@ -146,7 +149,13 @@ class CollaborativeListRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyA
     queryset = CollaborativeList.objects.all()
     serializer_class = CollaborativeListSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
-
+    def check_object_permissions(self, request, obj):
+        if self.request.method == 'DELETE':
+            if obj.user == request.user:
+                return True
+            else:
+                raise PermissionDenied(detail='You do not have permission to delete this object.')
+        return super().check_object_permissions(request, obj)
 
 class ItemCreateView(generics.CreateAPIView):
     serializer_class = ItemSerializer
@@ -167,7 +176,6 @@ class ItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     def perform_destroy(self, instance):
         instance.delete()
         return Response(status=204)
-
 
 
 class CollaborativeListItemsView(APIView):
@@ -502,10 +510,9 @@ class HabitStatisticsView(APIView):
         date_range = (start_date, end_date)
 
         total_days = (date_range[1] - date_range[0]).days + 1
-
         if habit.frequency == 'weekly':
             selected_days = habit.get_specific_days_as_list()
-            total_days = sum(1 for day in range(1, (end_date - start_date).days + 1) if day.strftime('%A').lower() in selected_days)
+            total_days = len([day for day in range((end_date - start_date).days + 1) if (start_date + timedelta(days=day)).strftime('%A').lower() in selected_days])
 
         progress_instances = DailyProgress.objects.filter(
             habit=habit, user_id=user.id, progress=True, date__range=date_range
