@@ -27,14 +27,18 @@ class UserInfoSerializer(serializers.ModelSerializer):
         fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id')
 
     def get_hasTeam(self, user):
-        return user.team_member1 is not None or user.team_member2 is not None
+        return getattr(user, 'team_member1', None) is not None or getattr(user, 'team_member2', None) is not None
+
 
     def get_team_id(self, user):
-        if user.team_member1:
+        team_member1 = getattr(user, 'team_member1', None)
+        team_member2 = getattr(user, 'team_member2', None)
+        if team_member1:
             return user.team_member1.id
-        elif user.team_member2:
+        elif team_member2:
             return user.team_member2.id
         return None
+
 """class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
