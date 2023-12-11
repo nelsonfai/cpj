@@ -30,12 +30,11 @@ class UserInfoSerializer(serializers.ModelSerializer):
         return user.team_member1 is not None or user.team_member2 is not None
 
     def get_team_id(self, user):
-        if hasattr(user, 'team_member1') and user.team_member1:
-            return user.team_member1
-        elif hasattr(user, 'team_member2') and user.team_member2:
-            return user.team_member2
+        if user.team_member1:
+            return user.team_member1.id
+        elif user.team_member2:
+            return user.team_member2.id
         return None
-
 """class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
