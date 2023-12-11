@@ -40,17 +40,28 @@ def list_endpoints(request):
 class SignUpView(generics.CreateAPIView):
     serializer_class = CustomUserSerializer
     permission_classes = [permissions.AllowAny]
-
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
-        
         # Create a token for the user
         token, created = Token.objects.get_or_create(user=serializer.instance)
         headers = self.get_success_headers(serializer.data)
         return Response({'token': token.key}, status=status.HTTP_201_CREATED, headers=headers)
+    
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+    def put(self, request, *args, **kwargs):
+        user = request.user
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
 
+        if not user.check_password(current_password):
+            return Response({'error': 'Current password is incorrect.'}, status=status.HTTP_400_BAD_REQUEST)
+        user.set_password(new_password)
+        user.save()
+
+        return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)
 class LoginView(generics.GenericAPIView):
     serializer_class = AuthTokenSerializer
     permission_classes = [permissions.AllowAny]
@@ -105,6 +116,23 @@ class LogoutView(APIView):
         request.auth.delete()
         return Response({'detail': 'Successfully logged out.'}, status=status.HTTP_200_OK)
     
+class ChangeEmailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, *args, **kwargs):
+        user = request.user
+        new_email = request.data.get('new_email')
+
+        if CustomUser.objects.filter(email=new_email).exclude(id=user.id).exists():
+            return Response({'error': 'Email is already in use by another user.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.email = new_email
+        user.save()
+
+        return Response({'message': 'Email changed successfully.'}, status=status.HTTP_200_OK)
+
+
+
 #Collaborative Lists
 class CollaborativeListCreateView(generics.CreateAPIView):
     queryset = CollaborativeList.objects.all()
@@ -183,7 +211,6 @@ class UserCollaborativeListsView(generics.ListAPIView):
 
 class TeamInvitationView(APIView):
     permission_classes = [IsAuthenticated]
-
     def post(self, request, invite_code):
         # Get the logged-in user
         current_user = self.request.user
@@ -232,7 +259,26 @@ class TeamInvitationView(APIView):
     def generate_unique_team_id(self):
         # You should implement a method to generate a unique team ID
         return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
-    
+
+class UnpairTeamView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # Assuming the logged-in user is attempting to unpair their team
+        current_user = self.request.user
+
+        # Check if the user is a member of any team
+        team = get_object_or_404(Team, Q(member1=current_user) | Q(member2=current_user))
+
+        # Clear the team members and delete the team
+        team.member1 = None
+        team.member2 = None
+        team.delete()
+
+        return Response({'message': 'Team unpaired successfully.'}, status=status.HTTP_200_OK)
+
+
+
 ### Daily Habit tacker views
 
 class HabitCreateView(generics.CreateAPIView):

@@ -1,6 +1,6 @@
 
 from django.urls import path
-from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done,HabitDeleteView,HabitUpdateView,HabitStatisticsView
+from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done,HabitDeleteView,HabitUpdateView,HabitStatisticsView,UnpairTeamView,ChangeEmailView,ChangePasswordView
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf.urls.static import static
 from django.conf import settings
@@ -10,10 +10,13 @@ urlpatterns = [
     path('signup/', SignUpView.as_view(), name='signup'), #used
     path('login/', LoginView.as_view(), name='login'),#used
     path('logout/', LogoutView.as_view(), name='logout'),#used
+    path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('change-email/', ChangeEmailView.as_view(), name='change-email'),
 
     path('update-profile/', UserProfileUpdateView.as_view(), name='update-profile'),#used
     path('profile-info/', UserInfoView.as_view(), name='profile-info'),#used
     path('team-invitation/<str:invite_code>/', TeamInvitationView.as_view(), name='team-invitation'),
+    path('unpair-team/', UnpairTeamView.as_view(), name='unpair-team'),
 
     # Get all Collaborative lists in which iser is user or t.m1 or t.m2
     path('collaborative-lists/', UserCollaborativeListsView.as_view(), name='collaborative-list-create'),#used
