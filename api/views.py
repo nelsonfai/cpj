@@ -503,10 +503,13 @@ class HabitStatisticsView(APIView):
             total_completed_days = progress_instances.count()
             total_undone_days = self.calculate_total_undone_days(habit, user, start_date, end_date,total_completed_days)
             completed_days_list = progress_instances.values_list('date', flat=True)
+            current_date = datetime.now().date()  # Get the current date
+            current_streak = habit.calculate_streak(user.id, current_date)
             result.update({
                 'total_completed_days': total_completed_days,
                 'total_undone_days': total_undone_days,
                 'completed_days_list': list(completed_days_list),
+                'current_streak':current_streak
             })
         elif rangetype == 'yearly':
                 current_year = start_date.year  # Use the year from the start date
