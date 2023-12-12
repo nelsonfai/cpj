@@ -154,10 +154,8 @@ class CollaborativeListRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyA
             if obj.user == request.user:
                 return True
             else:
-                return Response(
-                    {'error': 'You do not have permission to delete this object.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+                raise PermissionDenied(detail='You do not have permission to delete this object.', code='notCreatedUser')
+
         return super().check_object_permissions(request, obj)
 
 class ItemCreateView(generics.CreateAPIView):
@@ -536,6 +534,21 @@ class HabitStatisticsView(APIView):
                             'total_completed_days': total_completed_days,
                             'total_undone_days': total_undone_days,
                         })
+                    # Calculate streak for each partner
+        current_date = datetime.now().date()  # Get the current date
+        partner1_streak = habit.calculate_streak(user.id, current_date)
+        partner2_streak = {}
+        if habit.team:
+            team = habit.team
+            partner2_user = team.member1 if team.member2.id == user.id else team.member2
+            partner2_streak = habit.calculate_streak(partner2_user.id, current_date)
+
+        result.update({
+            'current_partner1_streak': partner1_streak,
+            'current_partner2_streak': partner2_streak,
+        })
+
+
 
                     
         return result
