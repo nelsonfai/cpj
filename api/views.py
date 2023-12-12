@@ -154,7 +154,10 @@ class CollaborativeListRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyA
             if obj.user == request.user:
                 return True
             else:
-                raise PermissionDenied(detail='You do not have permission to delete this object.')
+                return Response(
+                    {'error': 'You do not have permission to delete this object.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
         return super().check_object_permissions(request, obj)
 
 class ItemCreateView(generics.CreateAPIView):
@@ -453,59 +456,92 @@ def mark_habit_as_done(request, habit_id):
 
 class HabitStatisticsView(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request, habit_id):
+        rangetype = request.GET.get('rangetype', 'monthly')
         habit = get_object_or_404(Habit, id=habit_id, user=request.user)
 
         if not habit.team:
             # If the habit does not belong to a team, return statistics for the logged-in user only
-            partner1 = self.calculate_statistics(habit, request.user, request.GET.get('start_date'), request.GET.get('end_date'))
+            partner1 = self.calculate_statistics(habit, request.user, request.GET.get('start_date'), request.GET.get('end_date'), rangetype)
             partner2 = {}
         else:
             team = habit.team
-            partner1 = self.calculate_statistics(habit, request.user, request.GET.get('start_date'), request.GET.get('end_date'))
-            
+            partner1 = self.calculate_statistics(habit, request.user, request.GET.get('start_date'), request.GET.get('end_date'), rangetype)
             # Identify the other member of the team as partner2
             partner2_user = team.member1 if team.member2.id == request.user.id else team.member2
-            partner2 = self.calculate_statistics(habit, partner2_user, request.GET.get('start_date'), request.GET.get('end_date'))
+            partner2 = self.calculate_statistics(habit, partner2_user, request.GET.get('start_date'), request.GET.get('end_date'), rangetype)
 
         habit_info = {
             'habit_id': habit.id,
+            'rangetype':rangetype,
             'habit_name': habit.name,
             'habit_color': habit.color,
             'habit_start_date': habit.start_date,
             'habit_end_date': habit.end_date,
             'habit_frequency': habit.frequency,
         }
-
         return Response({'habit_info': habit_info, 'partner1': partner1, 'partner2': partner2}, status=status.HTTP_200_OK)
 
-    def calculate_statistics(self, habit, user, start_date, end_date):
-        progress_instances = DailyProgress.objects.filter(
-            habit=habit, user_id=user.id, progress=True, date__range=(start_date, end_date)
-        ).order_by('date')
-
-        total_completed_days = progress_instances.count()
-        total_undone_days = self.calculate_total_undone_days(habit, user, start_date, end_date,total_completed_days)
-        completed_days_list = progress_instances.values_list('date', flat=True)
-        if user.profile_pic:
-            profile_pic = user.profile_pic.url
-        else:
-            profile_pic = None
-
-        statistics = {
-            'user_id': user.id,
-            'user_name': user.name,
-            'profile':profile_pic,
-            'total_completed_days': total_completed_days,
-            'total_undone_days': total_undone_days,
-            'completed_days_list': list(completed_days_list),
-        }
-        return statistics
-
-    def calculate_total_undone_days(self, habit, user, start_date, end_date,total_completed_days):
+    def calculate_statistics(self, habit, user, start_date, end_date, rangetype):
+        # Convert start_date and end_date to datetime objects
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+        if user.profile_pic:
+                profile_pic = user.profile_pic.url
+        else:
+                profile_pic = None
+        # Initialize the result dictionary
+        result = {
+            'user_id': user.id,
+            'user_name': user.name,
+            'profile': profile_pic,
+            'completed_days_list': [],
+        }
+
+        if rangetype == 'monthly':
+            progress_instances = DailyProgress.objects.filter(
+                habit=habit, user_id=user.id, progress=True, date__range=(start_date, end_date)
+            ).order_by('date')
+            total_completed_days = progress_instances.count()
+            total_undone_days = self.calculate_total_undone_days(habit, user, start_date, end_date,total_completed_days)
+            completed_days_list = progress_instances.values_list('date', flat=True)
+            result.update({
+                'total_completed_days': total_completed_days,
+                'total_undone_days': total_undone_days,
+                'completed_days_list': list(completed_days_list),
+            })
+        elif rangetype == 'yearly':
+                current_year = start_date.year  # Use the year from the start date
+                for current_month in range(1, 13):
+                        # Ensure to only consider months within the specified year
+                        if current_year == start_date.year and current_month < start_date.month:
+                            continue
+                        if current_year == end_date.year and current_month > end_date.month:
+                            break
+
+                        # Calculate the first and last day of the current month
+                        first_day = datetime(current_year, current_month, 1)
+                        last_day = datetime(current_year, current_month, calendar.monthrange(current_year, current_month)[1])
+
+                        progress_instances = DailyProgress.objects.filter(
+                            habit=habit, user_id=user.id, progress=True, date__range=(first_day, last_day)
+                        ).order_by('date')
+
+                        total_completed_days = progress_instances.count()
+                        total_undone_days = self.calculate_total_undone_days(habit, user, first_day, last_day, total_completed_days)
+
+                        result['completed_days_list'].append({
+                            'year': current_year,
+                            'month': current_month,
+                            'total_completed_days': total_completed_days,
+                            'total_undone_days': total_undone_days,
+                        })
+
+                    
+        return result
+     
+
+    def calculate_total_undone_days(self, habit, user, start_date, end_date,total_completed_days):
 
         date_range = (start_date, end_date)
         total_days = 0
