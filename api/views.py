@@ -457,7 +457,6 @@ class HabitStatisticsView(APIView):
     def get(self, request, habit_id):
         rangetype = request.GET.get('rangetype', 'monthly')
         habit = get_object_or_404(Habit, id=habit_id, user=request.user)
-
         if not habit.team:
             # If the habit does not belong to a team, return statistics for the logged-in user only
             partner1 = self.calculate_statistics(habit, request.user, request.GET.get('start_date'), request.GET.get('end_date'), rangetype)
@@ -501,13 +500,13 @@ class HabitStatisticsView(APIView):
                 habit=habit, user_id=user.id, progress=True, date__range=(start_date, end_date)
             ).order_by('date')
             total_completed_days = progress_instances.count()
-            total_undone_days = self.calculate_total_undone_days(habit, user, start_date, end_date,total_completed_days)
+            total_days = self.calculate_total_days(habit, user, start_date, end_date)
             completed_days_list = progress_instances.values_list('date', flat=True)
             current_date = datetime.now().date()  # Get the current date
             current_streak = habit.calculate_streak(user.id, current_date)
             result.update({
                 'total_completed_days': total_completed_days,
-                'total_undone_days': total_undone_days,
+                'total_days': total_days,
                 'completed_days_list': list(completed_days_list),
                 'current_streak':current_streak
             })
@@ -529,13 +528,13 @@ class HabitStatisticsView(APIView):
                         ).order_by('date')
 
                         total_completed_days = progress_instances.count()
-                        total_undone_days = self.calculate_total_undone_days(habit, user, first_day, last_day, total_completed_days)
+                        total_days = self.calculate_total_days(habit, user, first_day, last_day)
 
                         result['completed_days_list'].append({
                             'year': current_year,
                             'month': current_month,
                             'total_completed_days': total_completed_days,
-                            'total_undone_days': total_undone_days,
+                            'total_days': total_days,
                         })
         # Calculate streak for each partner
         current_date = datetime.now().date()  # Get the current date
@@ -543,25 +542,22 @@ class HabitStatisticsView(APIView):
 
         result.update({
             'current_streak': current_streak,
-        })
-
-
-
-                    
+        })   
         return result
      
 
-    def calculate_total_undone_days(self, habit, user, start_date, end_date,total_completed_days):
-
+    def calculate_total_days(self, habit, user, start_date, end_date):
         date_range = (start_date, end_date)
         total_days = 0
         if habit.frequency == 'daily':
             total_days = (date_range[1] - date_range[0]).days + 1
         if habit.frequency == 'weekly':
-            selected_days = [day.lower() for day in habit.get_specific_days_as_list()]
-            print('Selected list',selected_days)
-            total_days = sum(1 for day in date_range if day.strftime('%A').lower() in selected_days)
-            print('total_days',total_days)
-        total_undone_days = total_days - total_completed_days
-        print(total_undone_days)
-        return total_undone_days
+            selected_days = habit.get_specific_days_as_list()
+            while start_date <= end_date:
+                current_day = start_date.weekday()
+                day_name = calendar.day_name[current_day]
+                if day_name in selected_days:
+                    total_days += 1
+                start_date += timedelta(days=1)
+
+        return total_days

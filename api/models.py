@@ -121,9 +121,7 @@ class Habit(models.Model):
                 if current_day_of_week in selected_days:
                     return previous_date
                 previous_date -= timedelta(days=1)
-
         return previous_date
-
     def __str__(self):
         return self.name
 
