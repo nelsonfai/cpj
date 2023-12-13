@@ -108,7 +108,6 @@ class Habit(models.Model):
                 previous_date = self.set_previous_day(date=previous_date)
             else:
                 break
-
         return streak
 
     def set_previous_day(self, date):
@@ -116,26 +115,13 @@ class Habit(models.Model):
             previous_date = date - timedelta(days=1)
         elif self.frequency == 'weekly':
             selected_days = self.get_specific_days_as_list()
-            day_mapping = {
-                'monday': 0,
-                'tuesday': 1,
-                'wednesday': 2,
-                'thursday': 3,
-                'friday': 4,
-                'saturday': 5,
-                'sunday': 6,
-            }
-            current_weekday = date.weekday()
-
-            # Find the previous selected day
-            previous_weekday = current_weekday
-            while previous_weekday not in [day_mapping[day.lower()] for day in selected_days]:
-                previous_weekday = (previous_weekday - 1) % 7
-
-            days_difference = (current_weekday - previous_weekday) % 7
-            previous_date = date - timedelta(days=days_difference)
-        else:
             previous_date = date - timedelta(days=1)
+            while True:
+                current_day_of_week = previous_date.strftime('%A')
+                if current_day_of_week in selected_days:
+                    return previous_date
+                previous_date -= timedelta(days=1)
+
         return previous_date
 
     def __str__(self):
