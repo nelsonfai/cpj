@@ -75,7 +75,6 @@ class LoginView(generics.GenericAPIView):
 
         if email and password:
             user = authenticate(request=request, email=email, password=password)
-
             if user:
                 token, created = Token.objects.get_or_create(user=user)
                 return Response({'token': token.key, 'user_id': user.pk, 'email': user.email}, status=status.HTTP_200_OK)
@@ -247,7 +246,6 @@ class TeamInvitationView(APIView):
             member1=invited_user,
             member2=current_user,
         )
-
         # Clear the invite code for the invited user
         invited_user.team_invite_code = None
         invited_user.save()
@@ -262,7 +260,6 @@ class TeamInvitationView(APIView):
             'current_user': current_user_serializer.data,
             'team': team_serializer.data,
         }
-
         return Response(response_data, status=status.HTTP_201_CREATED)
 
     def generate_unique_team_id(self):
@@ -285,8 +282,6 @@ class UnpairTeamView(APIView):
         team.delete()
 
         return Response({'message': 'Team unpaired successfully.'}, status=status.HTTP_200_OK)
-
-
 
 ### Daily Habit tacker views
 
@@ -544,8 +539,7 @@ class HabitStatisticsView(APIView):
             'current_streak': current_streak,
         })   
         return result
-     
-
+    
     def calculate_total_days(self, habit, user, start_date, end_date):
         date_range = (start_date, end_date)
         total_days = 0

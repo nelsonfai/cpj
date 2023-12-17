@@ -29,7 +29,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=30, blank=True,null=True)
     profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     team_invite_code = models.CharField(max_length=6, unique=True, blank=True, null=True)
-
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
@@ -66,18 +65,17 @@ class Item(models.Model):
     def __str__(self):
         return self.text
 
-
 # Daily Habit  Tracker 
 class Habit(models.Model):
-
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    icon =models.CharField(max_length=30,blank=True,null=True)
     team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
     color= models.CharField(max_length=255,blank=True,null=True)
     name = models.CharField(max_length=255)
     frequency = models.CharField(max_length=50)
     description = models.TextField(blank=True,null=True)
     start_date = models.DateField()
-    end_date = models.DateField()
+    end_date = models.DateField( blank=True,null=True)
     reminder_time = models.TimeField(null=True, blank=True)
     specific_days_of_week = models.CharField(max_length=255, null=True, blank=True)
 
@@ -96,7 +94,6 @@ class Habit(models.Model):
 
         streak = 0
         has_instance_with_current_date = any(instance.date == current_date for instance in progress_instances)
-
         if has_instance_with_current_date:
             previous_date = current_date
         else:
