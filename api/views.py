@@ -377,7 +377,8 @@ class HabitListView(APIView):
                         'specific_days_of_week':habit.specific_days_of_week,
                         'frequency': habit.frequency,
                          'reminder_time': habit.reminder_time,
-                         'isShared':isSharedValue
+                         'isShared':isSharedValue,
+                         'icon':habit.icon
                     }
 
                     habits_data.append(habit_data)
@@ -471,6 +472,7 @@ class HabitStatisticsView(APIView):
             'habit_start_date': habit.start_date,
             'habit_end_date': habit.end_date,
             'habit_frequency': habit.frequency,
+            'habit_icon':habit.icon
         }
         return Response({'habit_info': habit_info, 'partner1': partner1, 'partner2': partner2}, status=status.HTTP_200_OK)
 

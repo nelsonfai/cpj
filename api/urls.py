@@ -6,7 +6,6 @@ from django.conf.urls.static import static
 from django.conf import settings
 urlpatterns = [
     path('list-endpoints/', list_endpoints, name='list-endpoints'),
-
     path('signup/', SignUpView.as_view(), name='signup'), #used
     path('login/', LoginView.as_view(), name='login'),#used
     path('logout/', LogoutView.as_view(), name='logout'),#used
