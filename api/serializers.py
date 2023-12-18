@@ -6,7 +6,7 @@ from rest_framework.authtoken.serializers import AuthTokenSerializer
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ('id', 'email', 'name', 'profile_pic', 'password')
+        fields = ('id', 'email', 'name', 'profile_pic', 'password','lang')
         extra_kwargs = {
             'password': {'write_only': True},
         }
@@ -24,7 +24,7 @@ class UserInfoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id')
+        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id','lang')
 
     def get_hasTeam(self, user):
         return getattr(user, 'team_member1', None) is not None or getattr(user, 'team_member2', None) is not None
@@ -92,7 +92,6 @@ class CustomAuthTokenSerializer(AuthTokenSerializer):
             # Modify the authentication data to use email instead of username
             attrs['username'] = email
             del attrs['email']
-
         return super().validate(attrs)
 
 
@@ -109,7 +108,6 @@ class TeamSerializer(serializers.ModelSerializer):
             message='Members must be unique in a team.'
         )
     ]
-
 
 ### Daily Habit Tracker Serializers
 class HabitSerializer(serializers.ModelSerializer):
