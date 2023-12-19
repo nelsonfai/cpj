@@ -32,6 +32,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     team_invite_code = models.CharField(max_length=6, unique=True, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    premium = models.BooleanField(default=False)
 
     objects = CustomUserManager()
 
@@ -43,7 +44,6 @@ class Team(models.Model):
     unique_id = models.CharField(max_length=8, unique=True)
     member1 = models.OneToOneField(CustomUser, related_name='team_member1', on_delete=models.CASCADE,)
     member2 = models.OneToOneField(CustomUser, related_name='team_member2', on_delete=models.CASCADE, null=True, blank=True, )
-    is_premium = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Team {self.unique_id} "

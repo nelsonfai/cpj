@@ -21,6 +21,7 @@ from datetime import datetime
 import calendar
 from rest_framework.exceptions import PermissionDenied
 from datetime import timedelta
+from django.db import models
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -307,7 +308,6 @@ class HabitListView(APIView):
         try:
             user_id = request.data.get('user_id')
             target_date = request.data.get('target_date')
-
             # Ensure that the user making the request matches the requested user_id
             if request.user.id != int(user_id):
                 return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
@@ -337,19 +337,16 @@ class HabitListView(APIView):
                 if progress_instance:
                     partner_done_count = 1
 
-
                 if include_habit and team:
                     # Check if there is a progress instance for member 1
                     partner_count = 2
                     member_1_progress = DailyProgress.objects.filter(
                         habit=habit, user_id=team.member1.id, date=formatted_date
                     ).first()
-
                     # Check if there is a progress instance for member 2
                     member_2_progress = DailyProgress.objects.filter(
                         habit=habit, user_id=team.member2.id, date=formatted_date
                     ).first()
-
                     # If either member has progress, set partner_done to True
                     if member_1_progress or member_2_progress:
                         partner_done_count = 1
@@ -557,3 +554,42 @@ class HabitStatisticsView(APIView):
                 start_date += timedelta(days=1)
 
         return total_days
+
+
+class TeamHabitSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, habit_id):
+        user = request.user
+        current_date = datetime.now().date()
+        team = Team.objects.filter(Q(member1=user) | Q(member2=user)).first()
+
+        if not team:
+            partner1 = self.calculate_summary(user, current_date)
+            partner2 = {}
+        else:
+            partner1 = self.calculate_summary(user, current_date)
+            partner2_user = team.member1 if team.member2.id == user.id else team.member2
+            partner2 = self.calculate_summary(partner2_user, current_date)
+
+        return Response({'partner1': partner1, 'partner2': partner2}, status=status.HTTP_200_OK)
+
+    def calculate_summary(self, user, date):
+        # Filter habits for the specified user and date
+        total_habits = Habit.objects.filter(Q(user=user) | Q(team__member1=user) | Q(team__member2=user)).count()
+
+        # Filter DailyProgress based on the specified user, habit, and date
+        total_done = DailyProgress.objects.filter(habit__user=user, habit__date=date, progress=True).count()
+
+        profile_pic = ''
+        if user.profile_pic:
+            profile_pic = user.profile_pic.url
+
+        data = {
+            'total_habits': total_habits,
+            'total_done': total_done,
+            'name': user.name,
+            'profile': profile_pic
+        }
+
+        return data

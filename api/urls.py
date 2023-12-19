@@ -1,6 +1,6 @@
 
 from django.urls import path
-from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done,HabitDeleteView,HabitUpdateView,HabitStatisticsView,UnpairTeamView,ChangeEmailView,ChangePasswordView
+from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done,HabitDeleteView,HabitUpdateView,HabitStatisticsView,UnpairTeamView,ChangeEmailView,ChangePasswordView,TeamHabitSummaryView
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf.urls.static import static
 from django.conf import settings
@@ -27,11 +27,11 @@ urlpatterns = [
 
      # Endpoint for creating a new Item
     path('items/', ItemCreateView.as_view(), name='item-create'),
-
     # Endpoint for retrieving, updating, and deleting a specific Item
     path('items/<int:pk>/', ItemRetrieveUpdateDestroyView.as_view(), name='item-detail'), #used
 
     # ALL Habit Views
+    path('habitsummayr/', TeamHabitSummaryView.as_view(), name='habit-summary'),
     path('habits/create/', HabitCreateView.as_view(), name='habit-create'),
     path('daily-progress/create/', DailyProgressCreateView.as_view(), name='daily-progress-create'),
     path('habits/', HabitListView.as_view(), name='habit-list'),
@@ -41,6 +41,6 @@ urlpatterns = [
     path('habit/<int:habit_id>/statistics/', HabitStatisticsView.as_view(), name='habit_statistics'),
 
 ]
-
+TeamHabitSummaryView
 urlpatterns+=staticfiles_urlpatterns()
 urlpatterns +=static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
