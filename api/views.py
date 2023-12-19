@@ -575,9 +575,14 @@ class TeamHabitSummaryView(APIView):
         return Response({'partner1': partner1, 'partner2': partner2}, status=status.HTTP_200_OK)
 
     def calculate_summary(self, user, date):
-        # Filter habits for the specified user and date
-        total_habits = Habit.objects.filter(Q(user=user) | Q(team__member1=user) | Q(team__member2=user)).count()
-        # Filter DailyProgress based on the specified user, habit, and date
+        daily_habits = Habit.objects.filter(Q(user=user, frequency='daily') | Q(team__member1=user, frequency='daily') | Q(team__member2=user, frequency='daily'))
+        weekly_habits = Habit.objects.filter(
+            Q(user=user, frequency='weekly') | Q(team__member1=user, frequency='weekly') | Q(team__member2=user, frequency='weekly'),
+            Q(specific_days_of_week__contains=date.strftime('%A'))  # Check if today is in the specific days list
+        )
+        all_habits = daily_habits | weekly_habits
+        total_habits = all_habits.count()
+        #total_habits = Habit.objects.filter(Q(user=user) | Q(team__member1=user) | Q(team__member2=user)).count()
         total_done = DailyProgress.objects.filter(user=user,date=date, progress=True).count()
 
         profile_pic = ''
