@@ -577,9 +577,8 @@ class TeamHabitSummaryView(APIView):
     def calculate_summary(self, user, date):
         # Filter habits for the specified user and date
         total_habits = Habit.objects.filter(Q(user=user) | Q(team__member1=user) | Q(team__member2=user)).count()
-
         # Filter DailyProgress based on the specified user, habit, and date
-        total_done = DailyProgress.objects.filter(habit__user=user, habit__date=date, progress=True).count()
+        total_done = DailyProgress.objects.filter(user=user,date=date, progress=True).count()
 
         profile_pic = ''
         if user.profile_pic:
