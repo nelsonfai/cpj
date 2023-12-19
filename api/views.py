@@ -559,7 +559,7 @@ class HabitStatisticsView(APIView):
 class TeamHabitSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, habit_id):
+    def get(self, request):
         user = request.user
         current_date = datetime.now().date()
         team = Team.objects.filter(Q(member1=user) | Q(member2=user)).first()

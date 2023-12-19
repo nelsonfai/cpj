@@ -31,7 +31,7 @@ urlpatterns = [
     path('items/<int:pk>/', ItemRetrieveUpdateDestroyView.as_view(), name='item-detail'), #used
 
     # ALL Habit Views
-    path('habitsummayr/', TeamHabitSummaryView.as_view(), name='habit-summary'),
+    path('habitsummary/', TeamHabitSummaryView.as_view(), name='habit-summary'),
     path('habits/create/', HabitCreateView.as_view(), name='habit-create'),
     path('daily-progress/create/', DailyProgressCreateView.as_view(), name='daily-progress-create'),
     path('habits/', HabitListView.as_view(), name='habit-list'),
