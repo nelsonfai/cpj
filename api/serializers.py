@@ -21,14 +21,13 @@ class CustomUserSerializer(serializers.ModelSerializer):
 class UserInfoSerializer(serializers.ModelSerializer):
     hasTeam = serializers.SerializerMethodField()
     team_id = serializers.SerializerMethodField()
+    premium = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
         fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id','lang','premium')
-
     def get_hasTeam(self, user):
         return getattr(user, 'team_member1', None) is not None or getattr(user, 'team_member2', None) is not None
-
     def get_team_id(self, user):
         team_member1 = getattr(user, 'team_member1', None)
         team_member2 = getattr(user, 'team_member2', None)
@@ -37,7 +36,13 @@ class UserInfoSerializer(serializers.ModelSerializer):
         elif team_member2:
             return user.team_member2.id
         return None
+    def get_premium(self, user):
+        return user.is_premium
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['premium'] = instance.is_premium
+        return representation
 
 """class ItemSerializer(serializers.ModelSerializer):
     class Meta:
@@ -93,7 +98,6 @@ class CustomAuthTokenSerializer(AuthTokenSerializer):
             attrs['username'] = email
             del attrs['email']
         return super().validate(attrs)
-
 
 class TeamSerializer(serializers.ModelSerializer):
     class Meta:

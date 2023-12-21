@@ -1,4 +1,6 @@
 from rest_framework import permissions
+from .models import Team
+from django.db.models import Q
 
 class IsOwnerOrTeamMember(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
@@ -18,3 +20,15 @@ class IsItemOwnerOrTeamMember(permissions.BasePermission):
         else:
             return obj.list.user == request.user
 
+class IsPremiumOrInPremiumTeam(permissions.BasePermission):
+    message = "You must be a premium user or a member of a premium team to access this resource."
+
+    def has_permission(self, request,):
+        user = request.user
+        if user.premium:
+            return True
+        team = Team.objects.filter(Q(member1=user) | Q(member2=user)).first()
+        if team and (team.member1.premium or team.member2.premium):
+            return True
+
+        return False

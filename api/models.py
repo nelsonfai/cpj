@@ -7,6 +7,7 @@ import string
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager,PermissionsMixin
 from datetime import timedelta
+from django.db.models import Q
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -27,6 +28,7 @@ class CustomUserManager(BaseUserManager):
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=30, blank=True,null=True)
+    fullname = models.CharField(max_length=100, blank=True,null=True)
     profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     lang = models.CharField(max_length=10,blank=True,null=True)
     team_invite_code = models.CharField(max_length=6, unique=True, blank=True, null=True)
@@ -40,6 +42,15 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+    @property
+    def is_premium (self):
+        if self.premium:
+            return True
+        team = Team.objects.filter(Q(member1=self) | Q(member2=self)).first()
+        if team and (team.member1.premium or team.member2.premium):
+            return True
+        return False
+    
 class Team(models.Model):
     unique_id = models.CharField(max_length=8, unique=True)
     member1 = models.OneToOneField(CustomUser, related_name='team_member1', on_delete=models.CASCADE,)

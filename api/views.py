@@ -289,9 +289,19 @@ class UnpairTeamView(APIView):
 class HabitCreateView(generics.CreateAPIView):
     serializer_class = HabitSerializer
     permission_classes = [IsAuthenticated]
-
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        user = self.request.user
+        if user.ispremium:
+            serializer.save(user=user)
+        else:
+            habit_count = Habit.objects.filter(user=user).count()
+            max_habit_limit = 3 
+            if habit_count >= max_habit_limit:
+                return Response(
+                    {"detail": "You have reached your habit limit."},
+                    status=status.HTTP_400_BAD_REQUEST)
+            else:
+                serializer.save(user=user)
 
 class DailyProgressCreateView(generics.CreateAPIView):
     serializer_class = DailyProgressSerializer
@@ -313,7 +323,11 @@ class HabitListView(APIView):
                 return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
             user_habits = Habit.objects.filter(user_id=user_id)
-            
+            if user_habits.count() >= 3 and not request.user.ispremium:
+                limitreached = True
+            else:
+                limitreached = False
+
             # Parse the target_date string to a datetime object
             formatted_date = datetime.strptime(target_date, '%Y-%m-%d').date()
             day_of_week = formatted_date.strftime('%A')  # Get the day of the week
@@ -380,7 +394,7 @@ class HabitListView(APIView):
 
                     habits_data.append(habit_data)
 
-            return Response(habits_data, status=status.HTTP_200_OK)
+            return Response({'habits':habits_data,'limit':limitreached}, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
