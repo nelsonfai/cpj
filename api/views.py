@@ -291,7 +291,7 @@ class HabitCreateView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
     def perform_create(self, serializer):
         user = self.request.user
-        if user.ispremium:
+        if user.is_premium:
             serializer.save(user=user)
         else:
             habit_count = Habit.objects.filter(user=user).count()
@@ -323,7 +323,7 @@ class HabitListView(APIView):
                 return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
             user_habits = Habit.objects.filter(user_id=user_id)
-            if user_habits.count() >= 3 and not request.user.ispremium:
+            if user_habits.count() >= 3 and not request.user.is_premium:
                 limitreached = True
             else:
                 limitreached = False

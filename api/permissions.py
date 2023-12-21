@@ -25,7 +25,7 @@ class IsPremiumOrInPremiumTeam(permissions.BasePermission):
 
     def has_permission(self, request,):
         user = request.user
-        if user.premium:
+        if user.is_premium:
             return True
         team = Team.objects.filter(Q(member1=user) | Q(member2=user)).first()
         if team and (team.member1.premium or team.member2.premium):
