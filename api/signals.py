@@ -5,6 +5,8 @@ from rest_framework.authtoken.models import Token
 from .models import CustomUser,DailyProgress
 import random
 import string
+import requests 
+
 #from onesignal_sdk.client import Client
 
 '''
@@ -25,21 +27,20 @@ def create_user_profile(sender, instance, created=False, **kwargs):
 def generate_invite_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
-""" 
 @receiver(post_save, sender=DailyProgress)
 def habit_completed_notification(sender, instance, created, **kwargs):
     if created:
         habit_team= instance.habit.team
-        if habit_team:
+        if habit_team and instance.user.is_premium:
             team_member = habit_team.member1 if habit_team.member2 == instance.user else habit_team.member2
-            client = Client(user_auth_key='YOUR_USER_AUTH_KEY', app_auth_key='YOUR_APP_AUTH_KEY')
-            notification_content = {
-                    'en': 'Habit completed!',
-                }
-            if team_member.onesignal_player_id:
-                    client.create_notification(
-                        contents=notification_content,
-                        include_player_ids=[team_member.onesignal_player_id],
-                    )
 
-"""
+            if team_member.expo_token:
+                send_message(expo_token=team_member.expo,title='Habit Done',body='Your Partner Just completed the Task')
+
+def send_message(expo_token, title, body):
+  message = {
+    'to' : expo_token,
+    'title' : title,
+    'body' : body
+  }
+  return requests.post('https://exp.host/--/api/v2/push/send', json = message)

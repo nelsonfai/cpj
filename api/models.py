@@ -35,6 +35,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     premium = models.BooleanField(default=False)
+    expo_token = models.TextField(null=True,blank=True)
 
     objects = CustomUserManager()
 

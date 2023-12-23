@@ -393,12 +393,10 @@ class HabitListView(APIView):
                     }
 
                     habits_data.append(habit_data)
-
             return Response({'habits':habits_data,'limit':limitreached}, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 class HabitUpdateView(APIView):
     permission_classes = [IsAuthenticated]
