@@ -6,7 +6,7 @@ from rest_framework.authtoken.serializers import AuthTokenSerializer
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ('id', 'email', 'name', 'profile_pic', 'password','lang')
+        fields = ('id', 'email', 'name', 'profile_pic', 'password','lang','expo_token')
         extra_kwargs = {
             'password': {'write_only': True},
         }
@@ -15,6 +15,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
         user = CustomUser.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
+            expo_token=validated_data['expo_token'],
         )
         return user
 
@@ -55,7 +56,7 @@ class UserInfoSerializer(serializers.ModelSerializer):
 class CollaborativeListSerializer(serializers.ModelSerializer):
     class Meta:
         model = CollaborativeList
-        fields = ['id', 'team', 'user', 'title', 'color', 'description']
+        fields = ['id', 'team', 'user', 'title', 'color', 'description','dateline']
 
 class CollaborativeListSerializerExtended(serializers.ModelSerializer):
     listitem_count = serializers.IntegerField()
@@ -67,7 +68,7 @@ class CollaborativeListSerializerExtended(serializers.ModelSerializer):
 
     class Meta:
         model = CollaborativeList
-        fields = ['id', 'team', 'user', 'user_name', 'member1_name', 'member2_name', 'title', 'color', 'description', 'listitem_count', 'done_item_count', 'has_team']
+        fields = ['id', 'team', 'user', 'user_name', 'member1_name', 'member2_name', 'title', 'color', 'description', 'listitem_count', 'done_item_count', 'has_team','dateline']
 
     def get_user_name(self, obj):
         return obj.user.name if obj.user else None

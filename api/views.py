@@ -73,11 +73,15 @@ class LoginView(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
         password = request.data.get('password')
+        expo_token = request.data.get('expo_token')
+
 
         if email and password:
             user = authenticate(request=request, email=email, password=password)
             if user:
                 token, created = Token.objects.get_or_create(user=user)
+                user.expo_token = expo_token
+                user.save()
                 return Response({'token': token.key, 'user_id': user.pk, 'email': user.email}, status=status.HTTP_200_OK)
 
         return Response({'detail': 'Unable to log in with provided credentials.'}, status=status.HTTP_401_UNAUTHORIZED)

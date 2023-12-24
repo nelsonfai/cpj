@@ -36,6 +36,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     premium = models.BooleanField(default=False)
     expo_token = models.TextField(null=True,blank=True)
+    notifications = models.BooleanField(default=False)
 
     objects = CustomUserManager()
 
@@ -66,6 +67,7 @@ class CollaborativeList(models.Model):
     title = models.CharField(max_length=255)
     color = models.CharField(max_length=40,)
     description = models.TextField( null=True,blank=True)
+    dateline= models.DateField(null=True,blank=True)
 
     def __str__(self):
         return f"List '{self.title}'"
