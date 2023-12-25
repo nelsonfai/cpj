@@ -8,6 +8,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager,PermissionsMixin
 from datetime import timedelta
 from django.db.models import Q
+from django.utils import timezone
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -68,7 +69,17 @@ class CollaborativeList(models.Model):
     color = models.CharField(max_length=40,)
     description = models.TextField( null=True,blank=True)
     dateline= models.DateField(null=True,blank=True)
+    def check_all_item_done(self):
+        return not self.item_set.filter(done=False).exists()
+    def check_past_dateline(self):
+        undone =self.item_set.filter(done=False).exists()
+        if self.dateline and undone:
+            # If there is a dateline and there are undone related items
+            today = timezone.now().date()
+            if today > self.dateline:
+                return True
 
+        return False
     def __str__(self):
         return f"List '{self.title}'"
 

@@ -581,14 +581,52 @@ class TeamHabitSummaryView(APIView):
         team = Team.objects.filter(Q(member1=user) | Q(member2=user)).first()
 
         if not team:
-            partner1 = self.calculate_summary(user, current_date)
-            partner2 = {}
+            partner1_habits = self.calculate_summary(user, current_date)
+            partner1_list = self.list_summary(user)
+            partner1 = {
+                "habits":partner1_habits,
+                "list":partner1_list
+            }
+            partner2 = {
+                
+            }
         else:
-            partner1 = self.calculate_summary(user, current_date)
+            partner1_habits = self.calculate_summary(user, current_date)
+            partner1_list = self.list_summary(user)
+
             partner2_user = team.member1 if team.member2.id == user.id else team.member2
-            partner2 = self.calculate_summary(partner2_user, current_date)
+            partner2_habits = self.calculate_summary(partner2_user, current_date)
+            partner2_list = self.list_summary(partner2_user) 
+
+            partner1 = {
+                "habits":partner1_habits,
+                "list":partner1_list
+            }
+            partner2 = {
+                "habits":partner2_habits,
+                "list":partner2_list
+            }
 
         return Response({'partner1': partner1, 'partner2': partner2}, status=status.HTTP_200_OK)
+    def list_summary(self, user):
+        query = CollaborativeList.objects.filter(Q(user=user) | Q(team__member1=user) | Q(team__member2=user))
+        total = query.count()
+        num_past_dateline = 0
+        num_completed = 0
+
+        for collaborative_list in query:
+            if collaborative_list.check_all_item_done():
+                num_completed += 1
+
+        for collaborative_list in query:
+            if collaborative_list.check_past_dateline():
+                num_past_dateline += 1
+
+        return {
+            'total': total,
+            'num_past_dateline': num_past_dateline,
+            'num_completed': num_completed
+        }
 
     def calculate_summary(self, user, date):
         daily_habits = Habit.objects.filter(Q(user=user, frequency='daily') | Q(team__member1=user, frequency='daily') | Q(team__member2=user, frequency='daily'))
