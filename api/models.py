@@ -35,7 +35,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     team_invite_code = models.CharField(max_length=6, unique=True, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    premium = models.BooleanField(default=False)
+    premium = models.BooleanField(default=True)
     expo_token = models.TextField(null=True,blank=True)
     notifications = models.BooleanField(default=False)
 
