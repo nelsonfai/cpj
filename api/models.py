@@ -155,3 +155,17 @@ class DailyProgress(models.Model):
     progress = models.BooleanField(default=False)  
     def __str__(self):
         return f"{self.user.email}'s progress for {self.habit.name} on {self.date}"
+    
+
+class Subscription(models.Model):
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    plan = models.CharField(max_length=255)
+    stripe_customer_id = models.CharField(max_length=255)
+
+
+class Notes (models.Model):
+    team = models.ForeignKey('Team',on_delete=models.SET_NULL,null=True,blank=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE ,null=True,blank=True )
+    title = models.CharField(max_length=255)
+    body = models.TextField(null=True,blank=True)
+    date = models.DateTimeField(auto_now=True)

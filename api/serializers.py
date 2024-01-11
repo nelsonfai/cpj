@@ -1,6 +1,6 @@
 # couples_diary_backend/api/serializers.py
 from rest_framework import serializers
-from .models import CustomUser,CollaborativeList,Item,Team,Habit,DailyProgress
+from .models import CustomUser,CollaborativeList,Item,Team,Habit,DailyProgress,Notes
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -124,3 +124,9 @@ class DailyProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = DailyProgress
         fields = '__all__'
+
+class NotesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notes
+        fields = ['id', 'team', 'user', 'title', 'body', 'date']
+        read_only_fields = ['user']

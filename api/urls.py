@@ -1,6 +1,6 @@
 
 from django.urls import path
-from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done,HabitDeleteView,HabitUpdateView,HabitStatisticsView,UnpairTeamView,ChangeEmailView,ChangePasswordView,TeamHabitSummaryView
+from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done,HabitDeleteView,HabitUpdateView,HabitStatisticsView,UnpairTeamView,ChangeEmailView,ChangePasswordView,TeamHabitSummaryView,NotesListCreateView, NotesDetailView
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf.urls.static import static
 from django.conf import settings
@@ -39,7 +39,8 @@ urlpatterns = [
     path('habits/<int:habit_id>/update/', HabitUpdateView.as_view(), name='habit-update'),
     path('habits/<int:habit_id>/delete/', HabitDeleteView.as_view(), name='habit-delete'),
     path('habit/<int:habit_id>/statistics/', HabitStatisticsView.as_view(), name='habit_statistics'),
-
+    path('notes/', NotesListCreateView.as_view(), name='notes-list-create'),
+    path('notes/<int:pk>/', NotesDetailView.as_view(), name='notes-detail'),
 ]
 TeamHabitSummaryView
 urlpatterns+=staticfiles_urlpatterns()

@@ -5,7 +5,7 @@ from rest_framework.authtoken.models import Token
 from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer,CollaborativeListSerializerExtended,TeamSerializer,HabitSerializer,DailyProgressSerializer
 from rest_framework.authtoken.views import ObtainAuthToken,APIView
 from rest_framework.permissions import IsAuthenticated
-from .models import CollaborativeList,Item,CustomUser,Team,Habit,DailyProgress
+from .models import CollaborativeList,Item,CustomUser,Team,Habit,DailyProgress,Notes
 from .permissions import IsOwnerOrTeamMember,IsItemOwnerOrTeamMember
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -22,6 +22,7 @@ import calendar
 from rest_framework.exceptions import PermissionDenied
 from datetime import timedelta
 from django.db import models
+from .serializers import NotesSerializer
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -651,3 +652,16 @@ class TeamHabitSummaryView(APIView):
         }
 
         return data
+
+class NotesListCreateView(generics.ListCreateAPIView):
+    queryset = Notes.objects.all()
+    serializer_class = NotesSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class NotesDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Notes.objects.all()
+    serializer_class = NotesSerializer
+    permission_classes = [IsAuthenticated]
