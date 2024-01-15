@@ -128,5 +128,5 @@ class DailyProgressSerializer(serializers.ModelSerializer):
 class NotesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notes
-        fields = ['id', 'team', 'user', 'title', 'body', 'date']
-        read_only_fields = ['user']
+        fields = ['id', 'team', 'user', 'title', 'body', 'date','color']
+        read_only_fields = ['user','date']

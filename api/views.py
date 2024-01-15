@@ -23,6 +23,8 @@ from rest_framework.exceptions import PermissionDenied
 from datetime import timedelta
 from django.db import models
 from .serializers import NotesSerializer
+from django.utils import timezone
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -654,12 +656,12 @@ class TeamHabitSummaryView(APIView):
         return data
 
 class NotesListCreateView(generics.ListCreateAPIView):
-    queryset = Notes.objects.all()
+    queryset = Notes.objects.all().order_by('-date') 
     serializer_class = NotesSerializer
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        serializer.save(user=self.request.user, date=timezone.now())
 
 class NotesDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Notes.objects.all()
