@@ -656,10 +656,15 @@ class TeamHabitSummaryView(APIView):
         return data
 
 class NotesListCreateView(generics.ListCreateAPIView):
-    queryset = Notes.objects.all().order_by('-date') 
     serializer_class = NotesSerializer
     permission_classes = [IsAuthenticated]
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Notes.objects.filter(
+            Q(user=user) | Q(team__member1=user) | Q(team__member2=user)
+        ).order_by('-date')
 
+        return queryset
     def perform_create(self, serializer):
         serializer.save(user=self.request.user, date=timezone.now())
 
@@ -667,3 +672,12 @@ class NotesDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Notes.objects.all()
     serializer_class = NotesSerializer
     permission_classes = [IsAuthenticated]
+
+class NotesDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+    def delete(self, request, note_id):
+        note = get_object_or_404(Habit, pk=note_id)
+        if note.user != request.user:
+            return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+        note.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
