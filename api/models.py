@@ -170,6 +170,7 @@ class Notes (models.Model):
     title = models.CharField(max_length=255)
     body = models.TextField(null=True,blank=True)
     date = models.DateTimeField(auto_now=True)
+    tags =models.CharField(max_length=255,null=True,blank=True)
 
     def save(self, *args, **kwargs):
         self.date = timezone.now()
