@@ -672,11 +672,17 @@ class NotesDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Notes.objects.all()
     serializer_class = NotesSerializer
     permission_classes = [IsAuthenticated]
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.user != request.user:
+            return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class NotesDeleteView(APIView):
     permission_classes = [IsAuthenticated]
     def delete(self, request, note_id):
-        note = get_object_or_404(Habit, pk=note_id)
+        note = get_object_or_404(Notes, pk=note_id)
         if note.user != request.user:
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
         note.delete()

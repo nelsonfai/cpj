@@ -166,7 +166,7 @@ class Subscription(models.Model):
 class Notes (models.Model):
     team = models.ForeignKey('Team',on_delete=models.SET_NULL,null=True,blank=True)
     color = models.CharField(max_length=255,null=True,blank=True)
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE ,null=True,blank=True )
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     body = models.TextField(null=True,blank=True)
     date = models.DateTimeField(auto_now=True)
