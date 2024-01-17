@@ -330,11 +330,9 @@ class HabitListView(APIView):
             if request.user.id != int(user_id):
                 return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
-            #user_habits = Habit.objects.filter(user_id=user_id)
             user_habits = Habit.objects.filter(Q(user=user) | Q(team__member1=user) | Q(team__member2=user))
 
             if user_habits.count() >= 3 and not request.user.is_premium:
-                print('user is premium?',request.user.is_premium)
                 limitreached = True
             else:
                 limitreached = False
@@ -433,8 +431,7 @@ class HabitDeleteView(APIView):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def mark_habit_as_done(request, habit_id):
-    habit = get_object_or_404(Habit, id=habit_id, user=request.user)
-
+    habit = get_object_or_404(Habit, Q(id=habit_id, user=request.user) | Q(id=habit_id, team__member1=request.user) | Q(id=habit_id, team__member2=request.user))
     # Get the date from the request (assuming it is in the format 'YYYY-MM-DD')
     date_str = request.data.get('date')
     
