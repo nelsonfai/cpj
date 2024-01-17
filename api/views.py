@@ -324,13 +324,17 @@ class HabitListView(APIView):
     def post(self, request):
         try:
             user_id = request.data.get('user_id')
+            user = request.user
             target_date = request.data.get('target_date')
             # Ensure that the user making the request matches the requested user_id
             if request.user.id != int(user_id):
                 return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
-            user_habits = Habit.objects.filter(user_id=user_id)
+            #user_habits = Habit.objects.filter(user_id=user_id)
+            user_habits = Habit.objects.filter(Q(user=user) | Q(team__member1=user) | Q(team__member2=user))
+
             if user_habits.count() >= 3 and not request.user.is_premium:
+                print('user is premium?',request.user.is_premium)
                 limitreached = True
             else:
                 limitreached = False
