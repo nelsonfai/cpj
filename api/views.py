@@ -698,7 +698,7 @@ def create_payment_intent(request):
     plan = request.data.get('plan')
 
     print('Create Payment')
-
+    stripe.api_key = settings.STRIPE_SECRET_KEY
     try:
         # Check if the user already has a subscription
         user_subscription = Subscription.objects.filter(user=request.user).first()
