@@ -704,7 +704,7 @@ def create_payment_intent(request):
         # and calculate the amount to charge for the payment intent
         # Replace the following line with your subscription logic
         amount = 1000  # Example amount in cents
-        user_subscription = Subscription.object.get(user=request.user)
+        user_subscription = Subscription.objects.get(user=request.user)
         if user_subscription:
             customer_id = user_subscription.stripe_customer_id
         else:
