@@ -25,6 +25,8 @@ from django.db import models
 from .serializers import NotesSerializer
 from django.utils import timezone
 import stripe
+from django.conf import settings
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -692,6 +694,7 @@ class NotesDeleteView(APIView):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_payment_intent(request):
+    stripe.api_key =settings.STRIPE_SECRET_KEY
     print('Create Payment')
     try:
         # You can customize this function based on your subscription logic
