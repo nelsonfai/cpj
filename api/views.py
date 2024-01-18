@@ -24,7 +24,7 @@ from datetime import timedelta
 from django.db import models
 from .serializers import NotesSerializer
 from django.utils import timezone
-
+import stripe
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -688,3 +688,23 @@ class NotesDeleteView(APIView):
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
         note.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+#@require_POST
+def create_payment_intent(request):
+    print('Create Payment')
+    try:
+        # You can customize this function based on your subscription logic
+        # For example, you can retrieve the user and their subscription details here
+        # and calculate the amount to charge for the payment intent
+        # Replace the following line with your subscription logic
+        amount = 1000  # Example amount in cents
+
+        intent = stripe.PaymentIntent.create(
+            amount=amount,
+            currency='usd',
+        )
+
+        return Response({'clientSecret': intent.client_secret})
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
