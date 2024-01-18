@@ -704,7 +704,8 @@ def create_payment_intent(request):
             amount=amount,
             currency='usd',
         )
-
+        print('inTENT ___-----',intent)
         return Response({'clientSecret': intent.client_secret})
     except Exception as e:
+        
         return Response({'error': str(e)}, status=500)

@@ -3,7 +3,9 @@
 import os
 import sys
 
+from decouple import AutoConfig
 
+config = AutoConfig()
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'couplejournal.settings')
