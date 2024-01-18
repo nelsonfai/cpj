@@ -689,8 +689,8 @@ class NotesDeleteView(APIView):
         note.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
-#@require_POST
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def create_payment_intent(request):
     print('Create Payment')
     try:
