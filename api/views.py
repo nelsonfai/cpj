@@ -716,8 +716,9 @@ def create_payment_intent(request):
             # Create or retrieve a subscription for the user
             subscription = stripe.Subscription.create(
                 customer=customer_id,
-                items=[{'price': plan}],  # Replace with your actual price ID
                 billing='automatic',
+                items=[{'price': plan, 'quantity': 1}],  # Replace with your actual price ID
+
             )
 
             # Create a new subscription record
