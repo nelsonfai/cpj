@@ -697,16 +697,10 @@ def create_payment_intent(request):
     name = request.data.get('name')
     plan = request.data.get('plan')
 
-    stripe.api_key = settings.STRIPE_SECRET_KEY
     print('Create Payment')
 
     try:
-        # You can customize this function based on your subscription logic
-        # For example, you can retrieve the user and their subscription details here
-        # and calculate the amount to charge for the payment intent
-        # Replace the following line with your subscription logic
-        amount = 1000  # Example amount in cents
-
+        # Check if the user already has a subscription
         user_subscription = Subscription.objects.filter(user=request.user).first()
 
         if user_subscription:
@@ -719,11 +713,19 @@ def create_payment_intent(request):
             )
             customer_id = customer['id']
 
+            # Create or retrieve a subscription for the user
+            subscription = stripe.Subscription.create(
+                customer=customer_id,
+                items=[{'price': plan}],  # Replace with your actual price ID
+                billing='automatic',
+            )
+
             # Create a new subscription record
             Subscription.objects.create(
                 user=request.user,
                 stripe_customer_id=customer_id,
-                plan=plan
+                plan=plan,
+                stripe_subscription_id=subscription.id,
             )
 
         # Create an ephemeral key for the customer
