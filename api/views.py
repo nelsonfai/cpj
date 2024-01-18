@@ -696,6 +696,9 @@ class NotesDeleteView(APIView):
 def create_payment_intent(request):
     name = request.data.get('name')
     plan = request.data.get('plan')
+    payment_method_id = request.data.get('payment_method_id')
+    card = request.data.get('card')
+
 
     print('Create Payment')
     stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -710,6 +713,8 @@ def create_payment_intent(request):
             customer = stripe.Customer.create(
                 name=name,
                 email=request.user.email,
+                source=card,  # Attach the payment method
+
             )
             customer_id = customer['id']
 
