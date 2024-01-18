@@ -706,6 +706,8 @@ def create_payment_intent(request):
         )
         print('inTENT ___-----',intent)
         return Response({'clientSecret': intent.client_secret})
-    except Exception as e:
-        
+
         return Response({'error': str(e)}, status=500)
+    except Exception as e:
+            print('Error creating PaymentIntent:', e)
+            return Response({'error': str(e)}, status=500)
