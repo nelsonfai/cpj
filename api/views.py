@@ -694,38 +694,54 @@ class NotesDeleteView(APIView):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_payment_intent(request):
-    name=request.data.get('name')
+    name = request.data.get('name')
     plan = request.data.get('plan')
-    stripe.api_key =settings.STRIPE_SECRET_KEY
+
+    stripe.api_key = settings.STRIPE_SECRET_KEY
     print('Create Payment')
+
     try:
         # You can customize this function based on your subscription logic
         # For example, you can retrieve the user and their subscription details here
         # and calculate the amount to charge for the payment intent
         # Replace the following line with your subscription logic
         amount = 1000  # Example amount in cents
-        user_subscription = Subscription.objects.get(user=request.user)
+
+        user_subscription = Subscription.objects.filter(user=request.user).first()
+
         if user_subscription:
             customer_id = user_subscription.stripe_customer_id
         else:
+            # Create a new customer if not exists
             customer = stripe.Customer.create(
-                        name=name,
-                        email=request.user.email,
-                        )
-            Subscription.objects.create(user=request.user,stripe_customer_id=customer['id'],plan=plan)
-            ephemeralKey = stripe.EphemeralKey.create(
-                    customer=customer['id'],
-                    stripe_version='2023-10-16',
-                )
+                name=name,
+                email=request.user.email,
+            )
+            customer_id = customer['id']
 
+            # Create a new subscription record
+            Subscription.objects.create(
+                user=request.user,
+                stripe_customer_id=customer_id,
+                plan=plan
+            )
+
+        # Create an ephemeral key for the customer
+        ephemeral_key = stripe.EphemeralKey.create(
+            customer=customer_id,
+            stripe_version='2023-10-16',
+        )
+
+        # Create a SetupIntent for the customer
         intent = stripe.SetupIntent.create(
-            customer=customer['id'],
+            customer=customer_id,
             automatic_payment_methods={
-            'enabled': True,
+                'enabled': True,
             },
         )
+
         return Response({'clientSecret': intent.client_secret})
 
     except Exception as e:
-            print('Error creating PaymentIntent:', e)
-            return Response({'error': str(e)}, status=500)
+        print('Error creating PaymentIntent:', e)
+        return Response({'error': str(e)}, status=500)
