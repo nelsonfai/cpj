@@ -30,17 +30,24 @@ def generate_invite_code():
 @receiver(post_save, sender=DailyProgress)
 def habit_completed_notification(sender, instance, created, **kwargs):
     if created:
-        habit_team= instance.habit.team
-        if habit_team and instance.user.is_premium:
+        habit_team = instance.habit.team
+        if habit_team: # and instance.user.is_premium:
             team_member = habit_team.member1 if habit_team.member2 == instance.user else habit_team.member2
 
             if team_member.expo_token:
                 send_message(expo_token=team_member.expo,title='Habit Done',body='Your Partner Just completed the Task')
 
 def send_message(expo_token, title, body):
-  message = {
-    'to' : expo_token,
-    'title' : title,
-    'body' : body
-  }
-  return requests.post('https://exp.host/--/api/v2/push/send', json = message)
+        expo_url = 'https://exp.host/--/api/v2/push/send'
+        expo_data = {
+            'to': expo_token,
+            'title': title,
+            'body': body,
+        }
+        try:
+            response = requests.post(expo_url, json=expo_data)
+            response_data = response.json()
+            print(response_data.get('status'))
+        except:
+            pass
+

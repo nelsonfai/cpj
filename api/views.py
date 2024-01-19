@@ -737,7 +737,6 @@ def create_payment_intent(request):
             customer=customer_id,
             stripe_version='2023-10-16',
         )
-
         # Create a SetupIntent for the customer
         intent = stripe.SetupIntent.create(
             customer=customer_id,
