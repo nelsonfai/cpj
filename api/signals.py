@@ -35,7 +35,7 @@ def habit_completed_notification(sender, instance, created, **kwargs):
             team_member = habit_team.member1 if habit_team.member2 == instance.user else habit_team.member2
 
             if team_member.expo_token:
-                send_message(expo_token=team_member.expo,title='Habit Done',body='Your Partner Just completed the Task')
+                send_message(expo_token=team_member.expo_token,title='Habit Done',body='Your Partner Just completed the Task')
 
 def send_message(expo_token, title, body):
         expo_url = 'https://exp.host/--/api/v2/push/send'
