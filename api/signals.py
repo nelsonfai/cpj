@@ -2,7 +2,7 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
-from .models import CustomUser,DailyProgress
+from .models import CustomUser,DailyProgress,Habit
 import random
 import string
 import requests 
@@ -19,13 +19,25 @@ def create_auth_token(sender, instance, created=False, **kwargs):
         Token.objects.create(user=instance)
         print('auth token created')
 ''' 
+@receiver(post_save,sender= Habit)
+def habitIdentifier (instance,created,**kwargs):
+    if created:
+        try:
+            id= generate_invite_code(10)
+            habit_identifier = f'{id}{instance.frequency}'
+            instance.habitidentifier= habit_identifier
+            instance.save()
+        except:
+            pass
+
+
 @receiver(post_save, sender=CustomUser)
 def create_user_profile(sender, instance, created=False, **kwargs):
     if created:
-        instance.team_invite_code=generate_invite_code()
+        instance.team_invite_code=generate_invite_code(6)
         instance.save()
-def generate_invite_code():
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+def generate_invite_code(number):
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=number))
 
 @receiver(post_save, sender=DailyProgress)
 def habit_completed_notification(sender, instance, created, **kwargs):

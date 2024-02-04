@@ -122,9 +122,12 @@ class UserInfoView(generics.RetrieveAPIView):
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
-
     def post(self, request, *args, **kwargs):
         # Simply delete the user's token to log them out
+        user = request.user
+        user.expo_token = None
+        user.save()
+
         request.auth.delete()
         return Response({'detail': 'Successfully logged out.'}, status=status.HTTP_200_OK)
     

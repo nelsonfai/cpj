@@ -58,6 +58,8 @@ class Team(models.Model):
     unique_id = models.CharField(max_length=8, unique=True)
     member1 = models.OneToOneField(CustomUser, related_name='team_member1', on_delete=models.CASCADE,)
     member2 = models.OneToOneField(CustomUser, related_name='team_member2', on_delete=models.CASCADE, null=True, blank=True, )
+    member1sync = models.BooleanField(default=False)
+    member2sync = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Team {self.unique_id} "
@@ -94,6 +96,7 @@ class Item(models.Model):
 # Daily Habit  Tracker 
 class Habit(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    habitidentifier = models.CharField(max_length=100 ,null=True,blank=True)
     icon =models.CharField(max_length=30,blank=True,null=True)
     team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
     color= models.CharField(max_length=255,blank=True,null=True)
