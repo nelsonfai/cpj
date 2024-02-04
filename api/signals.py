@@ -38,16 +38,23 @@ def habit_completed_notification(sender, instance, created, **kwargs):
                 send_message(expo_token=team_member.expo_token,title='Habit Done',body='Your Partner Just completed the Task')
 
 def send_message(expo_token, title, body):
-        expo_url = 'https://exp.host/--/api/v2/push/send'
-        expo_data = {
-            'to': expo_token,
-            'title': title,
-            'body': body,
-        }
-        try:
-            response = requests.post(expo_url, json=expo_data)
-            response_data = response.json()
-            print(response_data.get('status'))
-        except:
-            pass
+    expo_url = 'https://exp.host/--/api/v2/push/send'
+    expo_data = {
+        'to': expo_token,
+        'title': title,
+        'body': body,
+    }
+
+    try:
+        response = requests.post(expo_url, json=expo_data)
+        response_data = response.json()
+
+        if response_data.get('status') == 'ok':
+            print('Push notification sent successfully:', response_data)
+        else:
+            print('Failed to send push notification:', response_data)
+
+    except Exception as e:
+        print('Error sending push notification:', e)
+
 
