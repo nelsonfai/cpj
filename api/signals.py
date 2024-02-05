@@ -29,8 +29,6 @@ def habitIdentifier (instance,created,**kwargs):
             instance.save()
         except:
             pass
-
-
 @receiver(post_save, sender=CustomUser)
 def create_user_profile(sender, instance, created=False, **kwargs):
     if created:
@@ -38,6 +36,7 @@ def create_user_profile(sender, instance, created=False, **kwargs):
         instance.save()
 def generate_invite_code(number):
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=number))
+
 
 @receiver(post_save, sender=DailyProgress)
 def habit_completed_notification(sender, instance, created, **kwargs):
@@ -56,16 +55,13 @@ def send_message(expo_token, title, body):
         'title': title,
         'body': body,
     }
-
     try:
         response = requests.post(expo_url, json=expo_data)
         response_data = response.json()
-
         if response_data.get('status') == 'ok':
             print('Push notification sent successfully:', response_data)
         else:
             print('Failed to send push notification:', response_data)
-
     except Exception as e:
         print('Error sending push notification:', e)
 
