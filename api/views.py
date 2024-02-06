@@ -735,6 +735,7 @@ def get_user_habits(request):
             team.ismember1sync = True
         else:
             team.ismember2sync =True
+        team.save()
 
     all_habits = user_habits.union(team_habits)
     serializer = HabitSerializer(all_habits, many=True)
