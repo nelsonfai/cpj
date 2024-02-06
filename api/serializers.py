@@ -41,9 +41,9 @@ class UserInfoSerializer(serializers.ModelSerializer):
     
     def get_isync(self, user):
         if hasattr(user, 'team_member1') and user.team_member1:
-            return user.team_member1.ismember2sync
+            return user.team_member1.ismember1sync
         elif hasattr(user, 'team_member2') and user.team_member2:
-            return user.team_member2.ismember1sync
+            return user.team_member2.ismember2sync
         return False
 
 
