@@ -23,10 +23,11 @@ class UserInfoSerializer(serializers.ModelSerializer):
     hasTeam = serializers.SerializerMethodField()
     team_id = serializers.SerializerMethodField()
     premium = serializers.SerializerMethodField()
+    isync = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id','lang','premium')
+        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id','lang','premium','isync')
     def get_hasTeam(self, user):
         return getattr(user, 'team_member1', None) is not None or getattr(user, 'team_member2', None) is not None
     def get_team_id(self, user):
@@ -37,14 +38,20 @@ class UserInfoSerializer(serializers.ModelSerializer):
         elif team_member2:
             return user.team_member2.id
         return None
+    
+    def get_isync(self, user):
+        if user.team_member1:
+            return user.team_member1.ismember2sync
+        elif user.team_member2:
+            return user.team_member2.ismember1sync
+        return False
     def get_premium(self, user):
         return user.is_premium
-
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['premium'] = instance.is_premium
         return representation
-
+    
 """class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item

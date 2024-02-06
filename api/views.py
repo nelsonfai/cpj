@@ -176,9 +176,6 @@ class ItemCreateView(generics.CreateAPIView):
 
 
 class ItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    API endpoint for retrieving, updating, and deleting a specific Item.
-    """
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
     permission_classes = [permissions.IsAuthenticated, IsItemOwnerOrTeamMember]
@@ -189,7 +186,6 @@ class ItemRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     def perform_destroy(self, instance):
         instance.delete()
         return Response(status=204)
-
 
 class CollaborativeListItemsView(APIView):
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
@@ -281,22 +277,18 @@ class TeamInvitationView(APIView):
 
 class UnpairTeamView(APIView):
     permission_classes = [IsAuthenticated]
-
     def post(self, request):
         # Assuming the logged-in user is attempting to unpair their team
         current_user = self.request.user
 
         # Check if the user is a member of any team
         team = get_object_or_404(Team, Q(member1=current_user) | Q(member2=current_user))
-
         # Clear the team members and delete the team
         team.member1 = None
         team.member2 = None
         team.delete()
 
         return Response({'message': 'Team unpaired successfully.'}, status=status.HTTP_200_OK)
-
-### Daily Habit tacker views
 
 class HabitCreateView(generics.CreateAPIView):
     serializer_class = HabitSerializer
@@ -313,6 +305,14 @@ class HabitCreateView(generics.CreateAPIView):
                     {"detail": "You have reached your habit limit."},
                     status=status.HTTP_400_BAD_REQUEST)
             else:
+                teams = Team.objects.filter(Q(member1=user) | Q(member2=user))
+                if teams:
+                    team = teams.first()
+                    if team.member1 == user:
+                        team.ismember2sync = False
+                    else:
+                        team.ismember1sync = False
+                    team.save()
                 serializer.save(user=user)
 
 class DailyProgressCreateView(generics.CreateAPIView):
@@ -412,16 +412,34 @@ class HabitListView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+
 class HabitUpdateView(APIView):
     permission_classes = [IsAuthenticated]
     def put(self, request, habit_id):
         habit = get_object_or_404(Habit, pk=habit_id)
         serializer = HabitSerializer(habit, data=request.data)
+        
         if serializer.is_valid():
+            # Check if frequency, reminder_time, or specific_days_of_week has changed
+            if (
+                habit.frequency != serializer.validated_data.get('frequency') or
+                habit.reminder_time != serializer.validated_data.get('reminder_time') or
+                habit.specific_days_of_week != serializer.validated_data.get('specific_days_of_week')
+            ):
+                # Check if the habit has a team
+                if habit.team:
+                    # Check if the logged user is member1 or member2 of the team
+                    if habit.team.member1 == request.user:
+                        habit.team.ismember2sync = False
+                        habit.team.save()
+                    elif habit.team.member2 == request.user:
+                        habit.team.ismember1sync = False
+                        habit.team.save()
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    
 class HabitDeleteView(APIView):
     permission_classes = [IsAuthenticated]
     def delete(self, request, habit_id):
@@ -429,6 +447,14 @@ class HabitDeleteView(APIView):
         # Check if the user making the request is the owner of the habit
         if habit.user != request.user:
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
+        if habit.team and habit.reminder_time:
+            # Check if the user is member1 or member2 of the team
+            if habit.team.member1 == request.user:
+                habit.team.ismember2sync = False
+                habit.team.save()
+            elif habit.team.member2 == request.user:
+                habit.team.ismember1sync = False
+                habit.team.save()
         habit.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -702,6 +728,14 @@ def get_user_habits(request):
     team_habits = Habit.objects.filter(
         Q(team__member1=user) | Q(team__member2=user)
     )
+    teams = Team.objects.filter(Q(member1=user) | Q(member2=user))
+    if teams:
+        team = teams.first()
+        if team.member1== user:
+            team.ismember1sync = True
+        else:
+            team.ismember2sync =True
+
     all_habits = user_habits.union(team_habits)
     serializer = HabitSerializer(all_habits, many=True)
 

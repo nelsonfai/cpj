@@ -42,7 +42,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
-
     def __str__(self):
         return self.email
     @property
@@ -58,8 +57,8 @@ class Team(models.Model):
     unique_id = models.CharField(max_length=8, unique=True)
     member1 = models.OneToOneField(CustomUser, related_name='team_member1', on_delete=models.CASCADE,)
     member2 = models.OneToOneField(CustomUser, related_name='team_member2', on_delete=models.CASCADE, null=True, blank=True, )
-    member1sync = models.BooleanField(default=False)
-    member2sync = models.BooleanField(default=False)
+    ismember1sync = models.BooleanField(default=False)
+    ismember2sync = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Team {self.unique_id} "
@@ -76,7 +75,6 @@ class CollaborativeList(models.Model):
     def check_past_dateline(self):
         undone =self.item_set.filter(done=False).exists()
         if self.dateline and undone:
-            # If there is a dateline and there are undone related items
             today = timezone.now().date()
             if today > self.dateline:
                 return True
