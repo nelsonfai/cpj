@@ -103,7 +103,7 @@ class Habit(models.Model):
     description = models.TextField(blank=True,null=True)
     start_date = models.DateField()
     end_date = models.DateField( blank=True,null=True)
-    reminder_time = models.TimeField(null=True, blank=True)
+    reminder_time = models.DateTimeField(null=True, blank=True)
     specific_days_of_week = models.CharField(max_length=255, null=True, blank=True)
 
     def get_specific_days_as_list(self):
