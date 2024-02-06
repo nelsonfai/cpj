@@ -40,11 +40,13 @@ class UserInfoSerializer(serializers.ModelSerializer):
         return None
     
     def get_isync(self, user):
-        if user.team_member1:
+        if hasattr(user, 'team_member1') and user.team_member1:
             return user.team_member1.ismember2sync
-        elif user.team_member2:
+        elif hasattr(user, 'team_member2') and user.team_member2:
             return user.team_member2.ismember1sync
         return False
+
+
     def get_premium(self, user):
         return user.is_premium
     def to_representation(self, instance):
