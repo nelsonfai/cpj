@@ -328,9 +328,11 @@ class HabitListView(APIView):
     permission_classes = [IsAuthenticated]
     def post(self, request):
         try:
-            user_id = request.data.get('user_id')
+            #user_id = request.data.get('user_id')
+            user_id = 1
             user = request.user
-            target_date = request.data.get('target_date')
+            #target_date = request.data.get('target_date')
+            target_date = '2024-02-3'
             # Ensure that the user making the request matches the requested user_id
             if request.user.id != int(user_id):
                 return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
@@ -345,19 +347,18 @@ class HabitListView(APIView):
                 limitreached = False
 
             # Parse the target_date string to a datetime object
-   
             habits_data = []
             for habit in user_habits:
 
                 progress_instance = DailyProgress.objects.filter(
                     habit=habit, user_id=user_id, date=formatted_date
                 ).first()
-
                 # Check if the habit should be included based on frequency and selected days
+                specific_month_days = [int(day) for day in habit.get_specific_day_of_month_as_list()]
                 include_habit = (
                     habit.frequency == 'daily' or
                     (habit.frequency == 'weekly' and day_of_week in habit.get_specific_days_as_list()) or
-                    (habit.frequency == 'monthly' and day_of_month in habit.get_specific_month_days_as_list())
+                    (habit.frequency == 'monthly' and int(day_of_month) in specific_month_days)
                 )
 
                 team = habit.team
@@ -388,7 +389,8 @@ class HabitListView(APIView):
                     isSharedValue = True
 
                 if include_habit:
-                    streak = habit.calculate_streak(user_id, formatted_date)
+                    
+                    streak = habit.calculate_streak(request.user.id, formatted_date)
                     habit_data = {
                         'id':habit.pk,
                         'color':habit.color,

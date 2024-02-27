@@ -110,8 +110,9 @@ class Habit(models.Model):
         if self.specific_days_of_week:
             return self.specific_days_of_week.split(',')
         return []
-    def get_specific_month_days_as_list(self):
-        if self.specific_days_of_week:
+    def get_specific_day_of_month_as_list(self):
+        if self.specific_day_of_month:
+            print('LIST',self.specific_day_of_month)
             return self.specific_day_of_month.split(',')
         return []
 
@@ -122,14 +123,12 @@ class Habit(models.Model):
         progress_instances = DailyProgress.objects.filter(
             habit=self, user_id=user_id, progress=True, date__lte=current_date
         ).order_by('-date')
-
         streak = 0
         has_instance_with_current_date = any(instance.date == current_date for instance in progress_instances)
         if has_instance_with_current_date:
             previous_date = current_date
         else:
             previous_date = self.set_previous_day(date=current_date)
-
         for progress_instance in progress_instances:
             if progress_instance.date == previous_date:
                 streak += 1
@@ -141,6 +140,7 @@ class Habit(models.Model):
     def set_previous_day(self, date):
         if self.frequency == 'daily':
             previous_date = date - timedelta(days=1)
+            print('daily',date,previous_date)
         elif self.frequency == 'weekly':
             selected_days = self.get_specific_days_as_list()
             previous_date = date - timedelta(days=1)
@@ -150,8 +150,22 @@ class Habit(models.Model):
                     return previous_date
                 previous_date -= timedelta(days=1)
         elif self.frequency == 'monthly':
-            previous_date = date.replace(day=self.specific_day_of_month) - timedelta(days=1)
+            specific_month_days = [int(day) for day in self.get_specific_day_of_month_as_list()]
+
+            specific_days_of_month = self.get_specific_day_of_month_as_list()
+            previous_date = date - timedelta(days=1)
+            print('specific days',specific_days_of_month)
+            print(previous_date)
+            while True:
+                current_day_of_month = previous_date.day
+                if int(current_day_of_month) in specific_month_days:
+                    print('in THE LIST')
+                    return previous_date
+                previous_date -= timedelta(days=1)
         return previous_date
+
+  
+
     def __str__(self):
         return self.name
 
