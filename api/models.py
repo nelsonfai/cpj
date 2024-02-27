@@ -104,11 +104,15 @@ class Habit(models.Model):
     end_date = models.DateField( blank=True,null=True)
     reminder_time = models.DateTimeField(null=True, blank=True)
     specific_days_of_week = models.CharField(max_length=255, null=True, blank=True)
-    specific_day_of_month = models.PositiveSmallIntegerField(blank=True, null=True)  # Updated field
+    specific_day_of_month = models.CharField(max_length=255, null=True, blank=True)  # Updated field
 
     def get_specific_days_as_list(self):
         if self.specific_days_of_week:
             return self.specific_days_of_week.split(',')
+        return []
+    def get_specific_day_as_list(self):
+        if self.specific_days_of_week:
+            return self.specific_day_of_month.split(',')
         return []
 
     def set_specific_days_from_list(self, days_list):
