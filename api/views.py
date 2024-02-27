@@ -328,11 +328,9 @@ class HabitListView(APIView):
     permission_classes = [IsAuthenticated]
     def post(self, request):
         try:
-            #user_id = request.data.get('user_id')
-            user_id = 1
+            user_id = request.data.get('user_id')
             user = request.user
-            #target_date = request.data.get('target_date')
-            target_date = '2024-02-3'
+            target_date = request.data.get('target_date')
             # Ensure that the user making the request matches the requested user_id
             if request.user.id != int(user_id):
                 return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
