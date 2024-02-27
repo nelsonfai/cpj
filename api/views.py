@@ -401,6 +401,7 @@ class HabitListView(APIView):
                         'start_date':habit.start_date,
                         'end_date':habit.end_date,
                         'specific_days_of_week':habit.specific_days_of_week,
+                        'specific_day_of_month': habit.specific_day_of_month,
                         'frequency': habit.frequency,
                          'reminder_time': habit.reminder_time,
                          'isShared':isSharedValue,
