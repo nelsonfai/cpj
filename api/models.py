@@ -23,7 +23,6 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-
         return self.create_user(email, password, **extra_fields)
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
@@ -105,6 +104,7 @@ class Habit(models.Model):
     end_date = models.DateField( blank=True,null=True)
     reminder_time = models.DateTimeField(null=True, blank=True)
     specific_days_of_week = models.CharField(max_length=255, null=True, blank=True)
+    specific_day_of_month = models.PositiveSmallIntegerField(blank=True, null=True)  # Updated field
 
     def get_specific_days_as_list(self):
         if self.specific_days_of_week:
@@ -145,6 +145,8 @@ class Habit(models.Model):
                 if current_day_of_week in selected_days:
                     return previous_date
                 previous_date -= timedelta(days=1)
+        elif self.frequency == 'monthly':
+            previous_date = date.replace(day=self.specific_day_of_month) - timedelta(days=1)
         return previous_date
     def __str__(self):
         return self.name
