@@ -110,7 +110,7 @@ class Habit(models.Model):
         if self.specific_days_of_week:
             return self.specific_days_of_week.split(',')
         return []
-    def get_specific_day_as_list(self):
+    def get_specific_month_days_as_list(self):
         if self.specific_days_of_week:
             return self.specific_day_of_month.split(',')
         return []

@@ -336,16 +336,16 @@ class HabitListView(APIView):
                 return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 
             user_habits = Habit.objects.filter(Q(user=user) | Q(team__member1=user) | Q(team__member2=user))
-
+            formatted_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+            day_of_week = formatted_date.strftime('%A')  # Get the day of the week
+            day_of_month = formatted_date.day
             if user_habits.count() >= 3 and not request.user.is_premium:
                 limitreached = True
             else:
                 limitreached = False
 
             # Parse the target_date string to a datetime object
-            formatted_date = datetime.strptime(target_date, '%Y-%m-%d').date()
-            day_of_week = formatted_date.strftime('%A')  # Get the day of the week
-            day_of_month = formatted_date.day
+   
             habits_data = []
             for habit in user_habits:
 
@@ -357,7 +357,7 @@ class HabitListView(APIView):
                 include_habit = (
                     habit.frequency == 'daily' or
                     (habit.frequency == 'weekly' and day_of_week in habit.get_specific_days_as_list()) or
-                    (habit.frequency == 'monthly' and day_of_month == habit.get_specific_day_as_list())
+                    (habit.frequency == 'monthly' and day_of_month in habit.get_specific_month_days_as_list())
                 )
 
                 team = habit.team
