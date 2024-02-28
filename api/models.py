@@ -9,6 +9,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager,Permiss
 from datetime import timedelta
 from django.db.models import Q
 from django.utils import timezone
+from cloudinary.models import CloudinaryField
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -29,7 +30,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=30, blank=True,null=True)
     fullname = models.CharField(max_length=100, blank=True,null=True)
-    profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    #profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    profile_pic = CloudinaryField('image', blank=True, null=True)
     lang = models.CharField(max_length=10,blank=True,null=True)
     team_invite_code = models.CharField(max_length=6, unique=True, blank=True, null=True)
     is_active = models.BooleanField(default=True)
