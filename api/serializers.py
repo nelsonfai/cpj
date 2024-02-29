@@ -5,7 +5,6 @@ from rest_framework.authtoken.serializers import AuthTokenSerializer
 
 class CustomUserSerializer(serializers.ModelSerializer):
     imageurl = serializers.SerializerMethodField()
-
     class Meta:
         model = CustomUser
         fields = ('id', 'email', 'name', 'profile_pic', 'password','lang','expo_token','imageurl')
@@ -20,9 +19,9 @@ class CustomUserSerializer(serializers.ModelSerializer):
             expo_token=validated_data['expo_token'],
         )
         return user
-    def get_imageurl(self):
-        if self.profile_pic:
-            return self.profile_pic.url
+    def get_imageurl(self, obj):
+            if obj.profile_pic:
+                return obj.profile_pic.url
         
 class UserInfoSerializer(serializers.ModelSerializer):
     hasTeam = serializers.SerializerMethodField()
