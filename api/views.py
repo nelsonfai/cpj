@@ -302,9 +302,8 @@ class HabitCreateView(generics.CreateAPIView):
             max_habit_limit = 3 
             if habit_count >= max_habit_limit:
                 print('The habit limit has exceed')
-                return Response(
-                    {"detail": "You have reached your habit limit."},
-                    status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'You have reached your habit limit.'}, status=status.HTTP_400_BAD_REQUEST)
+
             else:
                 teams = Team.objects.filter(Q(member1=user) | Q(member2=user))
                 if teams:
