@@ -293,6 +293,7 @@ class UnpairTeamView(APIView):
 class HabitCreateView(generics.CreateAPIView):
     serializer_class = HabitSerializer
     permission_classes = [IsAuthenticated]
+    
     def perform_create(self, serializer):
         user = self.request.user
         if user.is_premium:
@@ -301,9 +302,8 @@ class HabitCreateView(generics.CreateAPIView):
             habit_count = Habit.objects.filter(user=user).count()
             max_habit_limit = 3 
             if habit_count >= max_habit_limit:
-                print('The habit limit has exceed')
-                return Response({'error': 'You have reached your habit limit.'}, status=status.HTTP_400_BAD_REQUEST)
-
+                error_message = 'You have reached your habit limit.'
+                raise ValidationError(error_message)
             else:
                 teams = Team.objects.filter(Q(member1=user) | Q(member2=user))
                 if teams:
@@ -314,7 +314,13 @@ class HabitCreateView(generics.CreateAPIView):
                         team.ismember1sync = False
                     team.save()
                 serializer.save(user=user)
-
+                
+    def create(self, request, *args, **kwargs):
+        try:
+            response = super().create(request, *args, **kwargs)
+            return response
+        except ValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 class DailyProgressCreateView(generics.CreateAPIView):
     serializer_class = DailyProgressSerializer
     permission_classes = [IsAuthenticated]
