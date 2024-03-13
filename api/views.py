@@ -301,6 +301,7 @@ class HabitCreateView(generics.CreateAPIView):
             habit_count = Habit.objects.filter(user=user).count()
             max_habit_limit = 3 
             if habit_count >= max_habit_limit:
+                print('The habit limit has exceed')
                 return Response(
                     {"detail": "You have reached your habit limit."},
                     status=status.HTTP_400_BAD_REQUEST)
