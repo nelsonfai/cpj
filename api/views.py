@@ -777,13 +777,12 @@ class UpdateUserFromWebhook(APIView):
                 user.premium = True
             elif subscription_code in [5004, 5009]:  # SubscriptionExpired, SubscriptionRefund
                 user.premium = False
-     
             user.save()
-            
             return Response({'message': 'User information updated successfully'}, status=200)
         
         except CustomUser.DoesNotExist:
             return Response({'error': 'User not found'}, status=404)
         
         except Exception as e:
+            print(f'Error:{e}')
             return Response({'error': str(e)}, status=500)
