@@ -768,8 +768,7 @@ class UpdateUserFromWebhook(APIView):
             user.premium = webhook_data.get('premium')
             user.store = webhook_data.get('store')
             event_date_ms = webhook_data.get('event_date')
-            valid_till_date = datetime.datetime.utcfromtimestamp(event_date_ms / 1000)  # Convert milliseconds to seconds
-
+            valid_till_date = datetime.utcfromtimestamp(event_date_ms / 1000)
             user.valid_till = valid_till_date
             subscription_code = webhook_data.get('type')
             user.subscription_code = subscription_code
