@@ -765,13 +765,13 @@ class UpdateUserFromWebhook(APIView):
             user = CustomUser.objects.get(customerid=customid)
             
             # Update user information based on webhook data
-            user.premium = webhook_data.get('premium')
             user.store = webhook_data.get('store')
             event_date_ms = webhook_data.get('event_date')
             valid_till_date = datetime.utcfromtimestamp(event_date_ms / 1000)
             user.valid_till = valid_till_date
             subscription_code = webhook_data.get('type')
             user.subscription_code = subscription_code
+            print(f'Subscripzion code - {subscription_code}')
             if subscription_code in [5001, 5002, 5003, 5007]:  # SubscriptionInitialBuy, SubscriptionRestarted, SubscriptionRenewed, SubscriptionProductChange
                 user.premium = True
             elif subscription_code in [5004, 5009]:  # SubscriptionExpired, SubscriptionRefund
