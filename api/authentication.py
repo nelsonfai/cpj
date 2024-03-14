@@ -33,9 +33,12 @@ class WebhookBearerAuthentication(BaseAuthentication):
             return None
 
         token = auth_header.split(' ')[1]
+        print(f'Got a token - {token}')
 
         try:
+
             token_obj = Token.objects.get(key=token)
             return (token_obj.user, None)
         except Token.DoesNotExist:
+            print('Token not authnticated')
             raise AuthenticationFailed('Invalid token')
