@@ -44,7 +44,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     store = models.CharField(max_length=100, blank=True, null=True)  # Store field
     valid_till = models.DateTimeField(blank=True, null=True)  # Valid till field
     subscription_code = models.CharField(max_length=100, blank=True, null=True)  # Subscription code field
-
+    productid = models.CharField(max_length=100, blank=True, null=True)
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
