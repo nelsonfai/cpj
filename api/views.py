@@ -749,10 +749,8 @@ def get_user_habits(request):
         else:
             team.ismember2sync =True
         team.save()
-
     all_habits = user_habits.union(team_habits)
     serializer = HabitSerializer(all_habits, many=True)
-
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -763,12 +761,13 @@ class UpdateUserFromWebhook(APIView):
             customid = webhook_data.get('customid')
             # Retrieve the user based on the customid
             user = CustomUser.objects.get(customerid=customid)
-            
             # Update user information based on webhook data
             user.store = webhook_data.get('store')
             event_date_ms = webhook_data.get('event_date')
             valid_till_date = datetime.utcfromtimestamp(event_date_ms / 1000)
             productid = webhook_data.get('productid')
+            isactive = webhook_data.get('is_subscription_active')
+            print(f'IS actiuve status {isactive}')
 
             user.valid_till = valid_till_date
             subscription_code = webhook_data.get('type')
