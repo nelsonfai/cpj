@@ -26,6 +26,8 @@ from .serializers import NotesSerializer
 from django.utils import timezone
 import stripe
 from django.conf import settings
+import uuid
+import json
 
 
 @api_view(['GET'])
@@ -50,6 +52,9 @@ class SignUpView(generics.CreateAPIView):
     serializer_class = CustomUserSerializer
     permission_classes = [permissions.AllowAny]
     def create(self, request, *args, **kwargs):
+        generated_uuid = uuid.uuid4()
+        customerid = str(generated_uuid.hex)[:12]
+        request.data['customerid'] = customerid
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -749,3 +754,36 @@ def get_user_habits(request):
     serializer = HabitSerializer(all_habits, many=True)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UpdateUserFromWebhook(APIView):
+    def post(self, request, *args, **kwargs):
+        try:
+            webhook_data = json.loads(request.body)
+            customid = webhook_data.get('customid')
+            # Retrieve the user based on the customid
+            user = CustomUser.objects.get(customerid=customid)
+            
+            # Update user information based on webhook data
+            user.premium = webhook_data.get('premium')
+            user.store = webhook_data.get('store')
+            event_date_ms = webhook_data.get('event_date')
+            valid_till_date = datetime.datetime.utcfromtimestamp(event_date_ms / 1000)  # Convert milliseconds to seconds
+
+            user.valid_till = valid_till_date
+            subscription_code = webhook_data.get('type')
+            user.subscription_code = subscription_code
+            if subscription_code in [5001, 5002, 5003, 5007]:  # SubscriptionInitialBuy, SubscriptionRestarted, SubscriptionRenewed, SubscriptionProductChange
+                user.premium = True
+            elif subscription_code in [5004, 5009]:  # SubscriptionExpired, SubscriptionRefund
+                user.premium = False
+     
+            user.save()
+            
+            return Response({'message': 'User information updated successfully'}, status=200)
+        
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'User not found'}, status=404)
+        
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)

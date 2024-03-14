@@ -30,7 +30,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['cpj.onrender.com','127.0.0.1']
+ALLOWED_HOSTS = ['cpj.onrender.com','127.0.0.1','8000-nelsonfai-cpj-bygqste0lza.ws-eu110.gitpod.io']
 
 
 # Application definition
@@ -56,6 +56,8 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
+        'api.authentication.WebhookBearerAuthentication',  # Add the new authentication class
+
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',

@@ -1,6 +1,6 @@
 
 from django.urls import path
-from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done,HabitDeleteView,HabitUpdateView,HabitStatisticsView,UnpairTeamView,ChangeEmailView,ChangePasswordView,TeamHabitSummaryView,NotesListCreateView, NotesDetailView,NotesDeleteView,get_user_habits
+from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done,HabitDeleteView,HabitUpdateView,HabitStatisticsView,UnpairTeamView,ChangeEmailView,ChangePasswordView,TeamHabitSummaryView,NotesListCreateView, NotesDetailView,NotesDeleteView,get_user_habits,UpdateUserFromWebhook
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf.urls.static import static
 from django.conf import settings
@@ -42,7 +42,8 @@ urlpatterns = [
     path('notes/', NotesListCreateView.as_view(), name='notes-list-create'),
     path('notes/<int:pk>/', NotesDetailView.as_view(), name='notes-detail'),
     path('notes/<int:note_id>/delete/', NotesDeleteView.as_view(), name='note-delete'),
-    path('sync_reminders/',get_user_habits, name='reminders')
+    path('sync_reminders/',get_user_habits, name='reminders'),
+    path('update_user_from_webhook/', UpdateUserFromWebhook.as_view(), name='update_user_from_webhook'),
 
 ]
 TeamHabitSummaryView

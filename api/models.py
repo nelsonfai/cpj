@@ -39,6 +39,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     premium = models.BooleanField(default=True)
     expo_token = models.TextField(null=True,blank=True)
     notifications = models.BooleanField(default=False)
+    customerid = models.CharField(max_length=100, unique=True, null=True)  # New field for customer ID
+    subscription_type = models.CharField(max_length=100, blank=True, null=True)  # Subscription type field
+    store = models.CharField(max_length=100, blank=True, null=True)  # Store field
+    valid_till = models.DateTimeField(blank=True, null=True)  # Valid till field
+    subscription_code = models.CharField(max_length=100, blank=True, null=True)  # Subscription code field
 
     objects = CustomUserManager()
 
