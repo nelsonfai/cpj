@@ -757,7 +757,7 @@ def get_user_habits(request):
 class UpdateUserFromWebhook(APIView):
     def post(self, request, *args, **kwargs):
         try:
-            webhook_data = request.data  # Assuming data is sent as JSON
+            webhook_data = json.loads(request.body) # Assuming data is sent as JSON
 
             customid = webhook_data.get('customid')
 
@@ -790,10 +790,11 @@ class UpdateUserFromWebhook(APIView):
             user.subscription_type = subscription_type
             user.store = store
             user.save()
-
-            return JsonResponse({'message': 'User information updated successfully'}, status=200)
+            return Response({'message': 'User information updated successfully'}, status=200)
+        
         except CustomUser.DoesNotExist:
-            return JsonResponse({'error': 'User not found'}, status=404)
+            return Response({'error': 'User not found'}, status=404)
+        
         except Exception as e:
-            print(f'Error: {e}')
-            return JsonResponse({'error': str(e)}, status=500)
+            print(f'Error:{e}')
+            return Response({'error': str(e)}, status=500)
