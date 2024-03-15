@@ -17,10 +17,9 @@ from rest_framework.authtoken.serializers import AuthTokenSerializer
 from django.contrib.auth import authenticate
 from rest_framework.generics import ListAPIView
 import random,string
-from datetime import datetime 
+from datetime import datetime ,timedelta
 import calendar
 from rest_framework.exceptions import PermissionDenied,ValidationError
-from datetime import timedelta
 from django.db import models
 from .serializers import NotesSerializer
 from django.utils import timezone
@@ -764,12 +763,12 @@ class UpdateUserFromWebhook(APIView):
             # Retrieve user data from webhook
             customid = webhook_data.get('customid')
             subscription_code = int(webhook_data.get('type'))  # Convert to int
-            is_subscription_active = webhook_data.get('is_subscription_active') == 'true'  # Convert to boolean
+            is_subscription_active = webhook_data.get('is_subscription_active')  
             productid = webhook_data.get('productid')
             auto_renew_status = webhook_data.get('auto_renew_status')
-            event_date_ms = int(webhook_data.get('event_date'))  # Convert to int
+            event_date_ms = int(webhook_data.get('expire_date_ms'))  # Convert to int
             valid_till_date = datetime.utcfromtimestamp(event_date_ms / 1000)
-            
+
             # Retrieve the user based on the customid
             user = CustomUser.objects.get(customerid=customid)
             
