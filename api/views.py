@@ -757,37 +757,43 @@ def get_user_habits(request):
 class UpdateUserFromWebhook(APIView):
     def post(self, request, *args, **kwargs):
         try:
-            webhook_data = json.loads(request.body)
+            webhook_data = request.data  # Assuming data is sent as JSON
+
             customid = webhook_data.get('customid')
+
+            # Retrieve user data from webhook
+            customid = webhook_data.get('customid')
+            subscription_code = int(webhook_data.get('type'))  # Convert to int
+            is_subscription_active = webhook_data.get('is_subscription_active') == 'true'  # Convert to boolean
+            productid = webhook_data.get('productid')
+            auto_renew_status = webhook_data.get('auto_renew_status')
+            event_date_ms = int(webhook_data.get('event_date'))  # Convert to int
+            valid_till_date = datetime.utcfromtimestamp(event_date_ms / 1000)
+            
             # Retrieve the user based on the customid
             user = CustomUser.objects.get(customerid=customid)
-            # Update user information based on webhook data
-            user.store = webhook_data.get('store')
-            event_date_ms = webhook_data.get('event_date')
-            valid_till_date = datetime.utcfromtimestamp(event_date_ms / 1000)
-            productid = webhook_data.get('productid')
-            isactive = webhook_data.get('is_subscription_active')
-            print(f'IS actiuve status {isactive}')
-
-            user.valid_till = valid_till_date
-            subscription_code = webhook_data.get('type')
-            user.subscription_code = subscription_code
-            if productid:
-                user.productid=productid
-            else:
-                user.productid =null
             
-            if subscription_code in [5001, 5002, 5003, 5007]:  # SubscriptionInitialBuy, SubscriptionRestarted, SubscriptionRenewed, SubscriptionProductChange
-                user.premium = True
-                
-            elif subscription_code in [5004, 5009]:  # SubscriptionExpired, SubscriptionRefund
-                user.premium = False
+            # Gather all values before assigning
+            premium = is_subscription_active
+            subscription_type = "Yearly" if "yearly" in productid else "Monthly"
+            store = webhook_data.get('store')
+            valid_till = valid_till_date
+            subscription_code = subscription_code
+            productid = productid
+            auto_renew_status = auto_renew_status
+
+            # Update user based on the event code
+            user.premium = premium
+            user.valid_till = valid_till
+            user.productid = productid
+            user.auto_renew_status = auto_renew_status
+            user.subscription_type = subscription_type
+            user.store = store
             user.save()
-            return Response({'message': 'User information updated successfully'}, status=200)
-        
+
+            return JsonResponse({'message': 'User information updated successfully'}, status=200)
         except CustomUser.DoesNotExist:
-            return Response({'error': 'User not found'}, status=404)
-        
+            return JsonResponse({'error': 'User not found'}, status=404)
         except Exception as e:
-            print(f'Error:{e}')
-            return Response({'error': str(e)}, status=500)
+            print(f'Error: {e}')
+            return JsonResponse({'error': str(e)}, status=500)
