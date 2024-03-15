@@ -44,7 +44,7 @@ def habit_completed_notification(sender, instance, created, **kwargs):
         habit_team = instance.habit.team
         if habit_team: # and instance.user.is_premium:
             team_member = habit_team.member1 if habit_team.member2 == instance.user else habit_team.member2
-
+            print(f'-------{team_member.name} just completed the habit: {instance.habit.name}.-------')
             if team_member.expo_token:
                 send_message(expo_token=team_member.expo_token,title='Habit Done !',body=f'{team_member.name} just completed the habit: {instance.habit.name}.')
 
