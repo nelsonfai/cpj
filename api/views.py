@@ -703,22 +703,18 @@ class NotesListCreateView(generics.ListCreateAPIView):
         serializer_class = NotesSerializer
         permission_classes = [IsAuthenticated]
             
-        def get_queryset(self):
+        def list(self, request, *args, **kwargs):
+            queryset = self.get_queryset()
             user = self.request.user
-            queryset = Notes.objects.filter(
-                Q(user=user) | Q(team__member1=user) | Q(team__member2=user)
-            ).annotate(
-                has_note_limit_reached=Case(
-                    When(user=user, then=Count('id') >= 3),
-                    default=False,
-                    output_field=BooleanField()
-                )
-            ).order_by('-date')
-            # Check if the user's note limit is reached
-            limit_reached = queryset.exists() and queryset[0].has_note_limit_reached
-            data = {'data': queryset, 'limitreached': limit_reached}
+            premium = user.is_premium
+            num_notes = Notes.objects.filter(user=user).count()
             
-            return data
+            response_data = {
+                'data': self.serializer_class(queryset, many=True).data,
+                'limitreached': num_notes >= 3
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
 
         def perform_create(self, serializer):
             user = self.request.user
