@@ -700,17 +700,36 @@ class TeamHabitSummaryView(APIView):
         return data
 
 class NotesListCreateView(generics.ListCreateAPIView):
-    serializer_class = NotesSerializer
-    permission_classes = [IsAuthenticated]
-    def get_queryset(self):
-        user = self.request.user
-        queryset = Notes.objects.filter(
-            Q(user=user) | Q(team__member1=user) | Q(team__member2=user)
-        ).order_by('-date')
+        serializer_class = NotesSerializer
+        permission_classes = [IsAuthenticated]
+            
+        def get_queryset(self):
+            user = self.request.user
+            queryset = Notes.objects.filter(
+                Q(user=user) | Q(team__member1=user) | Q(team__member2=user)
+            ).annotate(
+                has_note_limit_reached=Case(
+                    When(user=user, then=Count('id') >= 3),
+                    default=False,
+                    output_field=BooleanField()
+                )
+            ).order_by('-date')
+            # Check if the user's note limit is reached
+            limit_reached = queryset.exists() and queryset[0].has_note_limit_reached
+            data = {'data': queryset, 'limitreached': limit_reached}
+            
+            return data
 
-        return queryset
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user, date=timezone.now())
+        def perform_create(self, serializer):
+            user = self.request.user
+            premium = user.is_premium  
+            num_notes = Notes.objects.filter(user=user).count()
+            
+            if not premium and num_notes >= 3:
+                error_message = 'You have reached your Note limit.'
+                raise ValidationError(error_message)
+            
+            serializer.save(user=user, date=timezone.now())
 
 class NotesDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Notes.objects.all()

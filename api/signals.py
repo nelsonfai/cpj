@@ -42,7 +42,7 @@ def generate_invite_code(number):
 def habit_completed_notification(sender, instance, created, **kwargs):
     if created:
         habit_team = instance.habit.team
-        if habit_team: # and instance.user.is_premium:
+        if habit_team:  and instance.user.is_premium:
             if habit_team.member2 != instance.user:
                 team_member = habit_team.member1
                 other_member = habit_team.member2
