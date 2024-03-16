@@ -27,12 +27,13 @@ class UserInfoSerializer(serializers.ModelSerializer):
     hasTeam = serializers.SerializerMethodField()
     team_id = serializers.SerializerMethodField()
     premium = serializers.SerializerMethodField()
+    mypremium = serializers.SerializerMethodField()
     imageurl = serializers.SerializerMethodField()
     isync = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id','lang','premium','isync','imageurl','customerid', 'subscription_type','valid_till', 'subscription_code', 'productid')
+        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id','lang','premium','isync','imageurl','customerid', 'subscription_type','valid_till', 'subscription_code', 'productid','mypremium')
     
     def get_hasTeam(self, user):
         return getattr(user, 'team_member1', None) is not None or getattr(user, 'team_member2', None) is not None
@@ -56,6 +57,8 @@ class UserInfoSerializer(serializers.ModelSerializer):
             return user.profile_pic.url
     def get_premium(self, user):
         return user.is_premium
+    def get_mypremium(self, user):
+        return user.premium
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation['premium'] = instance.is_premium
