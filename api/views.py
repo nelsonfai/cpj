@@ -25,7 +25,6 @@ from .serializers import NotesSerializer
 from django.utils import timezone
 import stripe
 from django.conf import settings
-import uuid
 import json
 
 
@@ -51,9 +50,7 @@ class SignUpView(generics.CreateAPIView):
     serializer_class = CustomUserSerializer
     permission_classes = [permissions.AllowAny]
     def create(self, request, *args, **kwargs):
-        generated_uuid = uuid.uuid4()
-        customerid = str(generated_uuid.hex)[:12]
-        request.data['customerid'] = customerid
+  
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)

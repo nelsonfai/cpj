@@ -6,6 +6,7 @@ from .models import CustomUser,DailyProgress,Habit
 import random
 import string
 import requests 
+import uuid
 
 #from onesignal_sdk.client import Client
 
@@ -32,10 +33,14 @@ def habitIdentifier (instance,created,**kwargs):
 @receiver(post_save, sender=CustomUser)
 def create_user_profile(sender, instance, created=False, **kwargs):
     if created:
+        generated_uuid = uuid.uuid4()
+        customerid = str(generated_uuid.hex)[:12]
         instance.team_invite_code=generate_invite_code(6)
+        instance.customerid = customerid
         instance.save()
 def generate_invite_code(number):
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=number))
+
 
 
 @receiver(post_save, sender=DailyProgress)
