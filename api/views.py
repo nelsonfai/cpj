@@ -702,7 +702,14 @@ class TeamHabitSummaryView(APIView):
 class NotesListCreateView(generics.ListCreateAPIView):
         serializer_class = NotesSerializer
         permission_classes = [IsAuthenticated]
-            
+        
+        def get_queryset(self):
+            user = self.request.user
+            queryset = Notes.objects.filter(
+                Q(user=user) | Q(team__member1=user) | Q(team__member2=user)
+            ).order_by('-date')
+            return queryset
+
         def list(self, request, *args, **kwargs):
             queryset = self.get_queryset()
             user = self.request.user
