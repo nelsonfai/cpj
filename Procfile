@@ -1,0 +1,1 @@
+web: gunicorn couplejournal.wsgi --log-file -
