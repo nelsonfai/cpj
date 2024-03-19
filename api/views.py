@@ -210,7 +210,7 @@ class CollaborativeListItemsView(APIView):
 
         return Response(expected_data)
 
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Case, When, BooleanField
 
 class UserCollaborativeListsView(generics.ListAPIView):
     serializer_class = CollaborativeListSerializerExtended
@@ -222,7 +222,7 @@ class UserCollaborativeListsView(generics.ListAPIView):
             Q(user=user) | Q(team__member1=user) | Q(team__member2=user)
         ).annotate(
             listitem_count=Count('item'),
-            done_item_count=Sum('item__done')
+            done_item_count=Sum(Case(When(item__done=True, then=1), default=0, output_field=BooleanField()))
         )
 
         return queryset
