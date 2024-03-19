@@ -54,7 +54,7 @@ def habit_completed_notification(sender, instance, created, **kwargs):
             else:
                 team_member = habit_team.member2
                 other_member = habit_team.member1
-            if team_member.expo_token:
+            if other_member.expo_token:
                 send_message(
                     expo_token=other_member.expo_token,
                     title='Habit Completed!',
