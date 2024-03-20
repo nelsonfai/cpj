@@ -15,7 +15,6 @@ from django.shortcuts import get_object_or_404
 from .authentication import EmailBackend
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from django.contrib.auth import authenticate
-from rest_framework.generics import ListAPIView
 import random,string
 from datetime import datetime ,timedelta
 import calendar
@@ -23,9 +22,19 @@ from rest_framework.exceptions import PermissionDenied,ValidationError
 from django.db import models
 from .serializers import NotesSerializer
 from django.utils import timezone
-import stripe
 from django.conf import settings
 import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .forms import CustomPasswordResetForm
+from django.contrib.auth.views import PasswordResetConfirmView
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils.encoding import force_bytes, force_text
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.contrib.auth.tokens import default_token_generator
+
+
 
 
 @api_view(['GET'])
@@ -816,3 +825,43 @@ class UpdateUserFromWebhook(APIView):
         except Exception as e:
             print(f'Error:{e}')
             return Response({'error': str(e)}, status=500)
+
+
+
+@csrf_exempt
+def request_password_reset(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        secret_code = request.POST.get('secret_code')  # Secret code from the frontend
+
+        # Validate the secret code
+        if secret_code != 'your_secret_code':  # Replace 'your_secret_code' with your actual secret code
+            return JsonResponse({'error': 'Invalid secret code'}, status=403)
+
+        # Find the user by email
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+
+        # Generate a password reset token
+        token_generator = default_token_generator
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = token_generator.make_token(user)
+        # Construct the password reset link
+        reset_url = reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
+
+        # Send the email with the password reset link
+        subject = 'Password Reset Request'
+        message = render_to_string('password_reset_email.html', {'reset_url': reset_url})
+        #send_mail(subject, message, 'from@example.com', [email])
+
+        print(f'This is sent email {subject} - {message} - {email}')
+
+        return JsonResponse({'message': 'Password reset email sent'})
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+class CustomPasswordResetConfirmView(PasswordResetConfirmView):
+    form_class = CustomPasswordResetForm  # Your custom password reset form class
+    template_name = 'password_reset_confirm.html'  # Your custom password reset confirmation template
