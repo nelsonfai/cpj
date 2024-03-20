@@ -33,7 +33,9 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes, force_text
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.auth.tokens import default_token_generator
-
+from mailjet_rest import Client
+import os
+from decouple import config
 
 
 
@@ -852,11 +854,10 @@ def request_password_reset(request):
         reset_url = reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
 
         # Send the email with the password reset link
-        subject = 'Password Reset Request'
-        message = render_to_string('password_reset_email.html', {'reset_url': reset_url})
-        #send_mail(subject, message, 'from@example.com', [email])
+        #subject = 'Password Reset Request'
+        #message = render_to_string('password_reset_email.html', {'reset_url': reset_url})
+        sendPassReset(reset_link=reset_url,recipient_email=email)
 
-        print(f'This is sent email {subject} - {message} - {email}')
 
         return JsonResponse({'message': 'Password reset email sent'})
     
@@ -865,3 +866,51 @@ def request_password_reset(request):
 class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     form_class = CustomPasswordResetForm  # Your custom password reset form class
     template_name = 'password_reset_confirm.html'  # Your custom password reset confirmation template
+
+
+def sendPassReset(reset_link,recipient_email):
+    api_key = config('MJ_APIKEY_PUBLIC')
+    api_secret = config('MJ_APIKEY_PRIVATE')
+    #recipient_email = 'nelsonfai21@yahoo.com'
+    mailjet = Client(auth=(api_key, api_secret), version='v3.1')
+    
+    #reset_link = 'https://example.com/reset-password'  # Update with the actual reset link
+    
+    data = {
+        'Messages': [
+            {
+                "From": {
+                    "Email": 'contact@habts.us',
+                    "Name": "Habts Us"  # Update with your name
+                },
+                "To": [
+                    {
+                        "Email": recipient_email,  # Update with recipient's email
+                        "Name": recipient_email  # Update with recipient's name
+                    }
+                ],
+                "Subject": "Password Reset Request",  # Update the subject
+                "TextPart": "Click the link to reset your password.",  # Update the text part
+                "HTMLPart": f"""
+                    <div >
+                        <p>Dear User,</p>
+                        <p>We received a request to reset your password.</p>
+                        <p>Please click the button below to reset your password:</p>
+                        <p style="text-align: center;"><a href="{reset_link}" style="display: inline-block; padding: 10px 20px; background-color: #b0a7f7; color: #fff; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
+                        <p>If you did not request this, you can safely ignore this email.</p>
+                        <p>Best regards,<br/>Habts Us Team</p>
+                        <div style="width: 100%; text-align: center; background-color:#EFEDFD">
+                            <div style="display: inline-block; width: 70px;">
+                                <img src="https://habts.us/output-onlinegiftools.gif" alt="Animated GIF" style="max-width: 100%; height: auto; margin: 0 auto;">
+                            </div>
+                        </div>
+                    </div>
+                """
+            }
+        ]
+    }
+
+    try:
+        return True  # Email sent successfully
+    except Exception as e:
+        return False  # Email sending failed

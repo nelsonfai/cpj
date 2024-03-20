@@ -47,8 +47,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'cloudinary',
-
-]
+    'mailjet_rest'
+    ]
 AUTH_USER_MODEL = 'api.CustomUser'
 
 # Use TokenAuthentication
