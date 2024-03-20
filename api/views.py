@@ -834,13 +834,6 @@ class UpdateUserFromWebhook(APIView):
 def request_password_reset(request):
     if request.method == 'POST':
         email = request.POST.get('email')
-        secret_code = request.POST.get('secret_code')  # Secret code from the frontend
-
-        # Validate the secret code
-        if secret_code != 'your_secret_code':  # Replace 'your_secret_code' with your actual secret code
-            return JsonResponse({'error': 'Invalid secret code'}, status=403)
-
-        # Find the user by email
         try:
             user = CustomUser.objects.get(email=email)
         except CustomUser.DoesNotExist:
