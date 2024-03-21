@@ -25,7 +25,6 @@ from django.utils import timezone
 from django.conf import settings
 import json
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from .forms import CustomPasswordResetForm
 from django.contrib.auth.views import PasswordResetConfirmView
 from django.template.loader import render_to_string
