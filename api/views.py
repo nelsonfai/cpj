@@ -484,7 +484,7 @@ def mark_habit_as_done(request, habit_id):
     habit = get_object_or_404(Habit, Q(id=habit_id, user=request.user) | Q(id=habit_id, team__member1=request.user) | Q(id=habit_id, team__member2=request.user))
     # Get the date from the request (assuming it is in the format 'YYYY-MM-DD')
     date_str = request.data.get('date')
-    
+
     if not date_str:
         return Response({'error': 'Date is required'}, status=400)
 
@@ -828,10 +828,9 @@ class UpdateUserFromWebhook(APIView):
             return Response({'error': str(e)}, status=500)
 
 
-
+@api_view(['POST'])
 def request_password_reset(request):
-    if request.method == 'POST':
-        email = request.POST.get('email')
+        email = request.data.get('email')
         print(f'Email received {email}-')
         try:
             user = CustomUser.objects.get(email=email)
@@ -853,12 +852,10 @@ def request_password_reset(request):
 
         return JsonResponse({'message': 'Password reset email sent'})
     
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 class CustomPasswordResetConfirmView(PasswordResetConfirmView):
     form_class = CustomPasswordResetForm  # Your custom password reset form class
     template_name = 'password_reset_confirm.html'  # Your custom password reset confirmation template
-
 
 def sendPassReset(reset_link,recipient_email):
     api_key = config('MJ_APIKEY_PUBLIC')
