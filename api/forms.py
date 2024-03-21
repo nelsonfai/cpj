@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 class CustomPasswordResetForm(PasswordResetForm):
 
     new_password1 = forms.CharField(
-        label=_("New password"),
+        label=_("New password1"),
         strip=False,
         widget=forms.PasswordInput(attrs={'autocomplete': 'new-password', 'placeholder': 'New Password'}),
         help_text=_("Enter a new password."),

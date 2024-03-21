@@ -35,6 +35,7 @@ from django.contrib.auth.tokens import default_token_generator
 from mailjet_rest import Client
 import os
 from decouple import config
+from django.shortcuts import render, redirect
 
 
 
@@ -843,27 +844,24 @@ def request_password_reset(request):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = token_generator.make_token(user)
         # Construct the password reset link
-        reset_url = reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
+        g_url = reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
+        reset_url = f'https://auth.habts.us{g_url}'
 
         # Send the email with the password reset link
         #subject = 'Password Reset Request'
         #message = render_to_string('password_reset_email.html', {'reset_url': reset_url})
-        sendPassReset(reset_link=reset_url,recipient_email=email)
+        status = sendPassReset(reset_link=reset_url,recipient_email=email)
 
 
-        return JsonResponse({'message': 'Password reset email sent'})
+        return JsonResponse({'message': 'Password reset email sent','status': status})
     
-
-class CustomPasswordResetConfirmView(PasswordResetConfirmView):
-    form_class = CustomPasswordResetForm  # Your custom password reset form class
-    template_name = 'password_reset_confirm.html'  # Your custom password reset confirmation template
 
 def sendPassReset(reset_link,recipient_email):
     api_key = config('MJ_APIKEY_PUBLIC')
     api_secret = config('MJ_APIKEY_PRIVATE')
     #recipient_email = 'nelsonfai21@yahoo.com'
     mailjet = Client(auth=(api_key, api_secret), version='v3.1')
-    
+    print(f'reset limnk {reset_link}')
     #reset_link = 'https://example.com/reset-password'  # Update with the actual reset link
     
     data = {
@@ -882,11 +880,13 @@ def sendPassReset(reset_link,recipient_email):
                 "Subject": "Password Reset Request",  # Update the subject
                 "TextPart": "Click the link to reset your password.",  # Update the text part
                 "HTMLPart": f"""
-                    <div >
+                    <div>
                         <p>Dear User,</p>
                         <p>We received a request to reset your password.</p>
                         <p>Please click the button below to reset your password:</p>
                         <p style="text-align: center;"><a href="{reset_link}" style="display: inline-block; padding: 10px 20px; background-color: #b0a7f7; color: #fff; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
+                        <p>Or copy and paste the following link into your browser:</p>
+                        <p style="text-align: center;">{reset_link}</p>
                         <p>If you did not request this, you can safely ignore this email.</p>
                         <p>Best regards,<br/>Habts Us Team</p>
                         <div style="width: 100%; text-align: center; background-color:#EFEDFD">
@@ -900,7 +900,39 @@ def sendPassReset(reset_link,recipient_email):
         ]
     }
 
+
     try:
+        result = mailjet.send.create(data=data)
+        print ('Post status',result.status_code)
+        print ('Post Json',result.json())
         return True  # Email sent successfully
     except Exception as e:
         return False  # Email sending failed
+
+
+
+
+from django.contrib.auth.forms import SetPasswordForm
+
+def password_reset_confirm(request, uidb64, token):
+    try:
+        uid = force_text(urlsafe_base64_decode(uidb64))
+        user = CustomUser.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError,CustomUser.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        # Token is valid, render the password reset form
+        if request.method == 'POST':
+            form = SetPasswordForm(user, request.POST)
+            if form.is_valid():
+                form.save()
+                return redirect('password_reset_complete')  # Redirect to a password reset complete page
+        else:
+            form = SetPasswordForm(user)
+        return render(request, 'password_reset_confirm.html', {'form': form})
+    else:
+        return render(request, 'password_reset_invalid.html')
+
+def password_reset_complete(request):
+    return render(request, 'password_reset_complete.html')
