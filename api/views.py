@@ -829,7 +829,6 @@ class UpdateUserFromWebhook(APIView):
 
 
 
-@csrf_exempt
 def request_password_reset(request):
     if request.method == 'POST':
         email = request.POST.get('email')
