@@ -834,6 +834,7 @@ class UpdateUserFromWebhook(APIView):
 def request_password_reset(request):
     if request.method == 'POST':
         email = request.POST.get('email')
+        print(f'Email received {email}-')
         try:
             user = CustomUser.objects.get(email=email)
         except CustomUser.DoesNotExist:
