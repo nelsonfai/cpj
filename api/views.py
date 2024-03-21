@@ -829,6 +829,7 @@ class UpdateUserFromWebhook(APIView):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def request_password_reset(request):
         email = request.data.get('email')
         print(f'Email received {email}-')
