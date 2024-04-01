@@ -15,7 +15,6 @@ from django.shortcuts import get_object_or_404
 from .authentication import EmailBackend
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from django.contrib.auth import authenticate
-from rest_framework.generics import ListAPIView
 import random,string
 from datetime import datetime ,timedelta
 import calendar
@@ -23,9 +22,21 @@ from rest_framework.exceptions import PermissionDenied,ValidationError
 from django.db import models
 from .serializers import NotesSerializer
 from django.utils import timezone
-import stripe
 from django.conf import settings
 import json
+from django.http import JsonResponse
+from .forms import CustomPasswordResetForm
+from django.contrib.auth.views import PasswordResetConfirmView
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils.encoding import force_bytes, force_text
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.contrib.auth.tokens import default_token_generator
+from mailjet_rest import Client
+import os
+from decouple import config
+from django.shortcuts import render, redirect
+
 
 
 @api_view(['GET'])
@@ -474,7 +485,7 @@ def mark_habit_as_done(request, habit_id):
     habit = get_object_or_404(Habit, Q(id=habit_id, user=request.user) | Q(id=habit_id, team__member1=request.user) | Q(id=habit_id, team__member2=request.user))
     # Get the date from the request (assuming it is in the format 'YYYY-MM-DD')
     date_str = request.data.get('date')
-    
+
     if not date_str:
         return Response({'error': 'Date is required'}, status=400)
 
@@ -816,3 +827,112 @@ class UpdateUserFromWebhook(APIView):
         except Exception as e:
             print(f'Error:{e}')
             return Response({'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def request_password_reset(request):
+        email = request.data.get('email')
+        print(f'Email received {email}-')
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return JsonResponse({'error': 'User not found'}, status=404)
+
+        # Generate a password reset token
+        token_generator = default_token_generator
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = token_generator.make_token(user)
+        # Construct the password reset link
+        g_url = reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
+        reset_url = f'https://auth.habts.us{g_url}'
+
+        # Send the email with the password reset link
+        #subject = 'Password Reset Request'
+        #message = render_to_string('password_reset_email.html', {'reset_url': reset_url})
+        status = sendPassReset(reset_link=reset_url,recipient_email=email)
+
+
+        return JsonResponse({'message': 'Password reset email sent','status': status})
+    
+
+def sendPassReset(reset_link,recipient_email):
+    api_key = config('MJ_APIKEY_PUBLIC')
+    api_secret = config('MJ_APIKEY_PRIVATE')
+    #recipient_email = 'nelsonfai21@yahoo.com'
+    mailjet = Client(auth=(api_key, api_secret), version='v3.1')
+    print(f'reset limnk {reset_link}')
+    #reset_link = 'https://example.com/reset-password'  # Update with the actual reset link
+    
+    data = {
+        'Messages': [
+            {
+                "From": {
+                    "Email": 'contact@habts.us',
+                    "Name": "Habts Us"  # Update with your name
+                },
+                "To": [
+                    {
+                        "Email": recipient_email,  # Update with recipient's email
+                        "Name": recipient_email  # Update with recipient's name
+                    }
+                ],
+                "Subject": "Password Reset Request",  # Update the subject
+                "TextPart": "Click the link to reset your password.",  # Update the text part
+                "HTMLPart": f"""
+                    <div>
+                        <p>Dear User,</p>
+                        <p>We received a request to reset your password.</p>
+                        <p>Please click the button below to reset your password:</p>
+                        <p style="text-align: center;"><a href="{reset_link}" style="display: inline-block; padding: 10px 20px; background-color: #b0a7f7; color: #fff; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
+                        <p>Or copy and paste the following link into your browser:</p>
+                        <p style="text-align: center;">{reset_link}</p>
+                        <p>If you did not request this, you can safely ignore this email.</p>
+                        <p>Best regards,<br/>Habts Us Team</p>
+                        <div style="width: 100%; text-align: center; background-color:#EFEDFD">
+                            <div style="display: inline-block; width: 70px;">
+                                <img src="https://habts.us/output-onlinegiftools.gif" alt="Animated GIF" style="max-width: 100%; height: auto; margin: 0 auto;">
+                            </div>
+                        </div>
+                    </div>
+                """
+            }
+        ]
+    }
+
+
+    try:
+        result = mailjet.send.create(data=data)
+        print ('Post status',result.status_code)
+        print ('Post Json',result.json())
+        return True  # Email sent successfully
+    except Exception as e:
+        return False  # Email sending failed
+
+
+
+
+from django.contrib.auth.forms import SetPasswordForm
+
+def password_reset_confirm(request, uidb64, token):
+    try:
+        uid = force_text(urlsafe_base64_decode(uidb64))
+        user = CustomUser.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError,CustomUser.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        # Token is valid, render the password reset form
+        if request.method == 'POST':
+            form = SetPasswordForm(user, request.POST)
+            if form.is_valid():
+                form.save()
+                return redirect('password_reset_complete')  # Redirect to a password reset complete page
+        else:
+            form = SetPasswordForm(user)
+        return render(request, 'password_reset_confirm.html', {'form': form})
+    else:
+        return render(request, 'password_reset_invalid.html')
+
+def password_reset_complete(request):
+    return render(request, 'password_reset_complete.html')

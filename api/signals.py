@@ -77,5 +77,3 @@ def send_message(expo_token, title, body):
             print('Failed to send push notification:', response_data)
     except Exception as e:
         print('Error sending push notification:', e)
-
-
