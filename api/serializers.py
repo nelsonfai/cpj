@@ -68,10 +68,10 @@ class UserInfoSerializer(serializers.ModelSerializer):
     def get_partner_name(self, user):
         team_member1 = getattr(user, 'team_member1', None)
         team_member2 = getattr(user, 'team_member2', None)
-        if team_member1 and team_member1.team_member2:
-            return team_member1.team_member2.name  # Partner is member2
-        elif team_member2 and team_member2.team_member1:
-            return team_member2.team_member1.name  # Partner is member1
+        if team_member1 and team_member1.member2:
+            return team_member1.member2.name  # Partner is member2
+        elif team_member2 and team_member2.member1:
+            return team_member2.member1.name  # Partner is member1
         return None
     
 """class ItemSerializer(serializers.ModelSerializer):
