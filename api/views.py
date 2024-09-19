@@ -1,11 +1,12 @@
 # couples_diary_backend/api/views.py
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status,viewsets
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from rest_framework.authtoken.models import Token
-from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer,CollaborativeListSerializerExtended,TeamSerializer,HabitSerializer,DailyProgressSerializer
+from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer,CollaborativeListSerializerExtended,TeamSerializer,HabitSerializer,DailyProgressSerializer,GamificationSerializer,TeamLeaderboardSerializer,UserSerializerPublic,ArticleSerializer,ArticleDetailSerializer,CalendarEventSerializer
 from rest_framework.authtoken.views import ObtainAuthToken,APIView
 from rest_framework.permissions import IsAuthenticated
-from .models import CollaborativeList,Item,CustomUser,Team,Habit,DailyProgress,Notes,Subscription
+from .models import CollaborativeList,Item,CustomUser,Team,Habit,DailyProgress,Notes,Subscription,Gamification,Article,CalendarEvent
 from .permissions import IsOwnerOrTeamMember,IsItemOwnerOrTeamMember
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -32,12 +33,13 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes, force_text
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.auth.tokens import default_token_generator
-from mailjet_rest import Client
 import os
 from decouple import config
 from django.shortcuts import render, redirect
+from django.db import transaction
 
-
+from django.contrib.auth.forms import SetPasswordForm
+from .sendmail import sendPassReset
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -240,6 +242,7 @@ class UserCollaborativeListsView(generics.ListAPIView):
 
 class TeamInvitationView(APIView):
     permission_classes = [IsAuthenticated]
+
     def post(self, request, invite_code):
         # Get the logged-in user
         current_user = self.request.user
@@ -267,20 +270,19 @@ class TeamInvitationView(APIView):
             member1=invited_user,
             member2=current_user,
         )
-        # Clear the invite code for the invited user
-        invited_user.team_invite_code = None
-        invited_user.save()
 
         # Serialize the users and team for the response
-        invited_user_serializer = CustomUserSerializer(invited_user)
-        current_user_serializer = CustomUserSerializer(current_user)
+        invited_user_serializer = UserSerializerPublic(invited_user)
+        current_user_serializer = UserInfoSerializer(current_user)
         team_serializer = TeamSerializer(team)
 
+        # Access `.data` for serialized objects
         response_data = {
             'invited_user': invited_user_serializer.data,
             'current_user': current_user_serializer.data,
-            'team': team_serializer.data,
+            'team': team_serializer.data,  # Add .data here
         }
+
         return Response(response_data, status=status.HTTP_201_CREATED)
 
     def generate_unique_team_id(self):
@@ -289,19 +291,33 @@ class TeamInvitationView(APIView):
 
 class UnpairTeamView(APIView):
     permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        # Assuming the logged-in user is attempting to unpair their team
         current_user = self.request.user
 
-        # Check if the user is a member of any team
+        # Retrieve the team where the current user is a member
         team = get_object_or_404(Team, Q(member1=current_user) | Q(member2=current_user))
-        # Clear the team members and delete the team
-        team.member1 = None
-        team.member2 = None
-        team.delete()
 
-        return Response({'message': 'Team unpaired successfully.'}, status=status.HTTP_200_OK)
+        try:
+            with transaction.atomic():  # Begin transaction
+                # Remove members and delete the team
+                team.member1 = None
+                team.member2 = None
+                team.delete()
 
+            # Transaction successful: Commit changes
+            return Response({
+                'message': 'Team unpaired successfully.',
+                'hasTeam': False,
+                'team_id': None
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            # If any error occurs, transaction is rolled back
+            return Response({
+                'message': 'Error unpairing the team.',
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 class HabitCreateView(generics.CreateAPIView):
     serializer_class = HabitSerializer
     permission_classes = [IsAuthenticated]
@@ -425,7 +441,6 @@ class HabitListView(APIView):
                          'isShared':isSharedValue,
                          'icon':habit.icon
                     }
-
                     habits_data.append(habit_data)
             return Response({'habits':habits_data,'limit':limitreached}, status=status.HTTP_200_OK)
 
@@ -833,7 +848,6 @@ class UpdateUserFromWebhook(APIView):
 @permission_classes([AllowAny])
 def request_password_reset(request):
         email = request.data.get('email')
-        print(f'Email received {email}-')
         try:
             user = CustomUser.objects.get(email=email)
         except CustomUser.DoesNotExist:
@@ -850,69 +864,44 @@ def request_password_reset(request):
         # Send the email with the password reset link
         #subject = 'Password Reset Request'
         #message = render_to_string('password_reset_email.html', {'reset_url': reset_url})
-        status = sendPassReset(reset_link=reset_url,recipient_email=email)
+        #status = sendPassReset(reset_link=reset_url,recipient_email=email)
+        status = sendPassReset(reset_link =reset_url, recipient_email=email, user_name=user.name, user_lang=user.lang)
 
 
         return JsonResponse({'message': 'Password reset email sent','status': status})
     
 
-def sendPassReset(reset_link,recipient_email):
-    api_key = config('MJ_APIKEY_PUBLIC')
-    api_secret = config('MJ_APIKEY_PRIVATE')
-    #recipient_email = 'nelsonfai21@yahoo.com'
-    mailjet = Client(auth=(api_key, api_secret), version='v3.1')
-    print(f'reset limnk {reset_link}')
-    #reset_link = 'https://example.com/reset-password'  # Update with the actual reset link
-    
-    data = {
-        'Messages': [
-            {
-                "From": {
-                    "Email": 'contact@habts.us',
-                    "Name": "Habts Us"  # Update with your name
-                },
-                "To": [
-                    {
-                        "Email": recipient_email,  # Update with recipient's email
-                        "Name": recipient_email  # Update with recipient's name
-                    }
-                ],
-                "Subject": "Password Reset Request",  # Update the subject
-                "TextPart": "Click the link to reset your password.",  # Update the text part
-                "HTMLPart": f"""
-                    <div>
-                        <p>Dear User,</p>
-                        <p>We received a request to reset your password.</p>
-                        <p>Please click the button below to reset your password:</p>
-                        <p style="text-align: center;"><a href="{reset_link}" style="display: inline-block; padding: 10px 20px; background-color: #b0a7f7; color: #fff; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
-                        <p>Or copy and paste the following link into your browser:</p>
-                        <p style="text-align: center;">{reset_link}</p>
-                        <p>If you did not request this, you can safely ignore this email.</p>
-                        <p>Best regards,<br/>Habts Us Team</p>
-                        <div style="width: 100%; text-align: center; background-color:#EFEDFD">
-                            <div style="display: inline-block; width: 70px;">
-                                <img src="https://habts.us/output-onlinegiftools.gif" alt="Animated GIF" style="max-width: 100%; height: auto; margin: 0 auto;">
-                            </div>
-                        </div>
-                    </div>
-                """
-            }
-        ]
-    }
 
 
-    try:
-        result = mailjet.send.create(data=data)
-        print ('Post status',result.status_code)
-        print ('Post Json',result.json())
-        return True  # Email sent successfully
-    except Exception as e:
-        return False  # Email sending failed
+class LeaderboardView(generics.ListAPIView):
+    serializer_class = GamificationSerializer
+    permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        # Get the "leaderboard_type" from query parameters ('user' or 'team')
+        leaderboard_type = self.request.query_params.get('leaderboard_type', 'user')
 
+        if leaderboard_type == 'user':
+            # Return leaderboard for individual users
+            return Gamification.leaderboard()
+        elif leaderboard_type == 'team':
+            # Return leaderboard for teams, ordered by total team points
+            teams = Team.objects.all()  # You might want to filter based on active teams
+            return sorted(teams, key=lambda team: team.team_points(), reverse=True)
+        else:
+            raise ValidationError("Invalid leaderboard_type. Must be 'user' or 'team'.")
 
+    def get_serializer_class(self):
+        leaderboard_type = self.request.query_params.get('leaderboard_type', 'user')
+        if leaderboard_type == 'team':
+            return TeamLeaderboardSerializer  # Use the team serializer for team leaderboard
+        return GamificationSerializer  # Default to the user serializer
 
-from django.contrib.auth.forms import SetPasswordForm
+    def get_serializer_context(self):
+        # Add the request to the context to access logged-in user and other details
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 def password_reset_confirm(request, uidb64, token):
     try:
@@ -936,3 +925,237 @@ def password_reset_confirm(request, uidb64, token):
 
 def password_reset_complete(request):
     return render(request, 'password_reset_complete.html')
+
+
+
+from django.db.models import Q, Count, Max, F
+
+from django.db.models import Q, Count, Max, F
+from django.utils import timezone
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import Team, Habit, CollaborativeList, Gamification, Item, Notes, DailyProgress
+
+class TeamStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Get the current user
+        current_user = request.user
+
+        # Get the team where the current user is either member1 or member2
+        team = Team.objects.filter(Q(member1=current_user) | Q(member2=current_user)).first()
+
+        if not team:
+            return Response({"error": "User is not a member of any team."}, status=400)
+
+        # Determine the partner
+        partner = team.member2 if team.member1 == current_user else team.member1
+
+        # Include error handling and retrieve partner's name and image URL
+        partner_info = {}
+        if partner:
+            partner_info = {
+                'name':partner.name or None,  # Prioritizes fullname, then name, then email
+                'imageurl': partner.profile_pic.url if partner.profile_pic else None  # Checks if profile_pic exists
+            }
+        else:
+            partner_info = {"error": "No partner found."}
+        # General Team Info
+        current_date = timezone.now().date()
+        team_duration_days = (current_date - team.created_at).days
+        general_info = {
+            'team_id': team.id,
+            'unique_id': team.unique_id,
+            'created_at': team.created_at,
+            'team_duration_days': team_duration_days,
+            'current_user': current_user.email,
+            'partner_info': partner_info,
+        }
+
+        # Habits Summary for Team and Each User
+        total_shared_habits = Habit.objects.filter(team=team).count()
+
+        def get_user_habit_summary(user):
+            try:
+                habits = Habit.objects.filter(user=user, team=team)
+                total_habits_created = habits.count()
+                completed_habits = DailyProgress.objects.filter(user=user, habit__team=team, progress=True).count()
+                habit_streak = 0  # Placeholder for streak calculation, if needed
+
+                return {
+                    'total_habits_created': total_habits_created,
+                    'completed_habits': completed_habits,
+                    'longest_streak': habit_streak,
+                }
+            except Exception as e:
+                return {"error": f"Error fetching habit summary: {str(e)}"}
+
+        habits_summary = {
+            'total_shared_habits': total_shared_habits,
+            'current_user': get_user_habit_summary(current_user),
+            'partner': get_user_habit_summary(partner) if partner else None
+        }
+
+        # Gamification Summary (Only Points Related to Shared Activities)
+        def get_gamification_summary(user):
+            try:
+                if hasattr(user, 'gamification'):
+                    gamification = user.gamification
+                    return {
+                        'total_points': gamification.calculate_total_points(),
+                        'xp_points': gamification.xp_points,
+                        'habits_points': gamification.habits_points,
+                        'list_points': gamification.list_points,
+                        'notes_points': gamification.notes_points,
+                        'event_points': gamification.event_points,
+                        'formatted_points': gamification.formatted_points()
+                    }
+                return {}
+            except Exception as e:
+                return {"error": f"Error fetching gamification summary: {str(e)}"}
+
+        gamemood_summary = {
+            'current_user': get_gamification_summary(current_user),
+            'partner': get_gamification_summary(partner) if partner else None,
+            'team_position':  4  # Assuming a method exists to calculate this -- team.get_leaderboard_position()
+        }
+
+        # Notes Summary for Team and Each User
+        total_shared_notes = Notes.objects.filter(team=team).count()
+
+        def get_user_notes_summary(user):
+            try:
+                notes = Notes.objects.filter(user=user, team=team)
+                total_notes_created = notes.count()
+                recent_note_titles = list(notes.values_list('title', flat=True)[:5])
+
+                return {
+                    'total_notes_created': total_notes_created,
+                    'recent_note_titles': recent_note_titles,
+                }
+            except Exception as e:
+                return {"error": f"Error fetching notes summary: {str(e)}"}
+
+        notes_summary = {
+            'total_shared_notes': total_shared_notes,
+            'current_user': get_user_notes_summary(current_user),
+            'partner': get_user_notes_summary(partner) if partner else None
+        }
+
+        # Lists Summary for Team and Each User
+        total_shared_lists = CollaborativeList.objects.filter(team=team).count()
+        total_lists_past_deadline = Item.objects.filter(list__team=team, done=False, last_status_change__lt=timezone.now()).count()
+        total_lists_completed = CollaborativeList.objects.filter(
+            team=team
+        ).annotate(
+            total_items=Count('item'),
+            completed_items=Count('item', filter=Q(item__done=True))
+        ).filter(total_items=F('completed_items')).count()
+
+        def get_user_lists_summary(user):
+            try:
+                lists = CollaborativeList.objects.filter(team=team, user=user)
+                total_lists_created = lists.count()
+                return {
+                    'total_lists_created': total_lists_created
+                }
+            except Exception as e:
+                return {"error": f"Error fetching lists summary: {str(e)}"}
+
+        lists_summary = {
+            'total_shared_lists': total_shared_lists,
+            'total_lists_past_deadline': total_lists_past_deadline,
+            'total_lists_completed': total_lists_completed,
+            'current_user': get_user_lists_summary(current_user),
+            'partner': get_user_lists_summary(partner) if partner else None
+        }
+
+        # Combine all summaries into a single response
+        response_data = {
+            'general_info': general_info,
+            'habits_summary': habits_summary,
+            'gamemood_summary': gamemood_summary,
+            'notes_summary': notes_summary,
+            'lists_summary': lists_summary,
+        }
+
+        return Response(response_data)
+
+class ArticleListView(generics.ListAPIView):
+    serializer_class = ArticleSerializer
+
+    def get_queryset(self):
+        return Article.objects.all().order_by('-created_date')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['language'] = self.request.query_params.get('lang', 'en')
+        return context
+    
+class ArticleDetailView(generics.RetrieveAPIView):
+    queryset = Article.objects.all()
+    serializer_class = ArticleSerializer
+    lookup_field = 'slug'  # Retrieve based on the slug field
+
+class ArticleDetailView(generics.RetrieveAPIView):
+    queryset = Article.objects.all()
+    serializer_class = ArticleDetailSerializer
+    lookup_field = 'slug'
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['language'] = self.request.query_params.get('lang', 'en')
+        return context
+
+
+class CalendarEventViewSet(viewsets.ModelViewSet):
+    serializer_class = CalendarEventSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+
+        if start_date and end_date:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            
+            # Fetch events for the user within the date range
+            
+            query = CalendarEvent.objects.filter(
+                user=user,
+
+            ).order_by('start_datetime')
+            print(query)
+            return query
+        
+        # If no date range is provided, return events for the next 7 days
+        today = timezone.now().date()
+        return CalendarEvent.objects.filter(
+            user=user,
+            start_datetime__date__gte=today,
+            end_datetime__date__lte=today + timedelta(days=7)
+        ).order_by('start_datetime')
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.user != request.user:
+            return Response({"detail": "You do not have permission to delete this event."},
+                            status=status.HTTP_403_FORBIDDEN)
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['post'])
+    def bulk_create(self, request):
+        serializer = self.get_serializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

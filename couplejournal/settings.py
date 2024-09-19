@@ -30,11 +30,13 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['cpj.onrender.com','127.0.0.1','8000-nelsonfai-cpj-bygqste0lza.ws-eu110.gitpod.io']
+ALLOWED_HOSTS = ['cpj.onrender.com','127.0.0.1','8000-nelsonfai-cpj-bygqste0lza.ws-eu110.gitpod.io','pretty-apes-speak.loca.lt']
+
+USE_I18N = True  # Enables Django’s translation machinery
+USE_L10N = True  # Enables localized formatting of data (e.g., dates)
 
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -47,7 +49,6 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'cloudinary',
-
 ]
 AUTH_USER_MODEL = 'api.CustomUser'
 
@@ -57,13 +58,11 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'api.authentication.WebhookBearerAuthentication',  # Add the new authentication class
-
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
-
 
 AUTHENTICATION_BACKENDS = [
     'api.authentication.EmailBackend',
@@ -76,10 +75,12 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.locale.LocaleMiddleware',  # Ensures language preference is respected
+
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-        'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 
 ]
 ROOT_URLCONF = 'couplejournal.urls'
@@ -94,7 +95,9 @@ TEMPLATES = [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.i18n',
                 'django.contrib.messages.context_processors.messages',
+
             ],
         },
     },
@@ -102,6 +105,18 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'couplejournal.wsgi.application'
 
+#Language
+LOCALE_PATHS = [
+    os.path.join(BASE_DIR, 'locale'),
+]
+# Default language of the project
+LANGUAGE_CODE = 'en'
+
+# List of supported languages (English, French, German)
+LANGUAGES = [
+    ('en', 'English'),
+    ('fr', 'French'),
+    ('de', 'German'),]
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases

@@ -1,0 +1,8 @@
+msgid "Your partner, %(name)s, just added a new Shared List: %(title)s. Dive in and start checking things off together!"
+msgstr "Dein Partner, %(name)s, hat gerade eine neue gemeinsame Liste hinzugefügt: %(title)s. Taucht ein und fangt gemeinsam an, Aufgaben abzuhaken!"
+
+msgid "Your partner, %(name)s, just created a new Habit: %(name)s. Stay on track and motivate each other every step of the way!"
+msgstr "Dein Partner, %(name)s, hat gerade eine neue Gewohnheit erstellt: %(name)s. Bleibt auf Kurs und motiviert euch gegenseitig bei jedem Schritt!"
+
+msgid "Your partner, %(name)s, just added a new Task. Keep the momentum going and crush your goals together!"
+msgstr "Dein Partner, %(name)s, hat gerade eine neue Aufgabe hinzugefügt. Haltet den Schwung aufrecht und erreicht eure Ziele gemeinsam!"

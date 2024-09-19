@@ -1,13 +1,17 @@
 # api/signals.py
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save,pre_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
-from .models import CustomUser,DailyProgress,Habit
+from .models import CustomUser,DailyProgress,Habit,CollaborativeList,Item,Gamification,Notes
 import random
 import string
 import requests 
 import uuid
-
+from django.utils.translation import gettext as _
+from django.utils import translation
+from django.utils import timezone
+from datetime import timedelta,datetime
+from .sendmail import sendWelcomeEmail
 #from onesignal_sdk.client import Client
 
 '''
@@ -20,6 +24,11 @@ def create_auth_token(sender, instance, created=False, **kwargs):
         Token.objects.create(user=instance)
         print('auth token created')
 ''' 
+color = '#c5bef9'
+
+#@receiver (post_save,sender=CustomUser )
+#def create_user_test_instances
+
 @receiver(post_save,sender= Habit)
 def habitIdentifier (instance,created,**kwargs):
     if created:
@@ -30,14 +39,86 @@ def habitIdentifier (instance,created,**kwargs):
             instance.save()
         except:
             pass
+
 @receiver(post_save, sender=CustomUser)
 def create_user_profile(sender, instance, created=False, **kwargs):
     if created:
         generated_uuid = uuid.uuid4()
         customerid = str(generated_uuid.hex)[:12]
-        instance.team_invite_code=generate_invite_code(6)
+        instance.team_invite_code = generate_invite_code(6)
         instance.customerid = customerid
         instance.save()
+        
+        # Set language preferences
+        user_lang = instance.lang if instance.lang else 'en'
+
+        # Translation mapping for languages (en, fr, de)
+        translations = {
+            'en': {
+                'list_title': 'Our Shared Goals List',
+                'list_description': 'A shared space to track tasks and goals together.',
+                'item_text': 'Sample task: Plan our weekly activities',
+                'habit_name': 'Daily Check-in with Partner',
+                'habit_description': 'Take 10 minutes to connect and discuss the day.',
+                'note_title': 'Weekly Reflections',
+                'note_body': 'Write down reflections from this week to improve next week’s productivity and relationship.'
+            },
+            'fr': {
+                'list_title': 'Notre Liste d\'Objectifs Partagés',
+                'list_description': 'Un espace partagé pour suivre les tâches et les objectifs ensemble.',
+                'item_text': 'Tâche d\'exemple : Planifier nos activités hebdomadaires',
+                'habit_name': 'Vérification Quotidienne avec le Partenaire',
+                'habit_description': 'Prenez 10 minutes pour vous connecter et discuter de la journée.',
+                'note_title': 'Réflexions Hebdomadaires',
+                'note_body': 'Écrivez vos réflexions de la semaine pour améliorer la productivité et la relation.'
+            },
+            'de': {
+                'list_title': 'Unsere Gemeinsame Zielliste',
+                'list_description': 'Ein gemeinsamer Raum, um Aufgaben und Ziele zusammen zu verfolgen.',
+                'item_text': 'Beispielaufgabe: Planen Sie unsere wöchentlichen Aktivitäten',
+                'habit_name': 'Täglicher Check-in mit dem Partner',
+                'habit_description': 'Nehmen Sie sich 10 Minuten Zeit, um sich zu verbinden und den Tag zu besprechen.',
+                'note_title': 'Wöchentliche Reflexionen',
+                'note_body': 'Notieren Sie die Reflexionen dieser Woche, um die Produktivität und die Beziehung zu verbessern.'
+            }
+        }
+
+        # Use the appropriate translation based on the user's language
+        translated_texts = translations.get(user_lang, translations['en'])
+
+        # Gamification element created for user
+        Gamification.objects.create(user=instance)
+
+        # Create Collaborative List Sample
+        today_date = timezone.now()
+        list = CollaborativeList.objects.create(
+            user=instance,
+            title=translated_texts['list_title'],
+            color=color,  # Using the predefined color variable
+            description=translated_texts['list_description'],
+            dateline=today_date
+        )
+        Item.objects.create(list=list, text=translated_texts['item_text'])
+
+        # Create Habit Sample
+        Habit.objects.create(
+            user=instance,
+            frequency='daily',
+            name=translated_texts['habit_name'],
+            description=translated_texts['habit_description'],
+            color=color,  # Using the predefined color variable
+            start_date=today_date,
+            icon='check-square-o'
+        )
+
+        # Create a Sample Note
+        Notes.objects.create(
+            user=instance,
+            color=color,  # Using the predefined color variable
+            title=translated_texts['note_title'],
+            body=translated_texts['note_body']
+        )
+        sendWelcomeEmail(user_name = instance.name ,recipient_email=instance.email,user_lang=instance.lang)
 def generate_invite_code(number):
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=number))
 
@@ -60,6 +141,78 @@ def habit_completed_notification(sender, instance, created, **kwargs):
                     title='Habit Completed!',
                     body=f'Your partner, {team_member.name}, just completed the habit: {instance.habit.name}.'
                 )
+
+########
+def notify_partner(instance,title,bodyCode):
+    list_team = instance.team
+    if list_team:
+        if list_team.member2 != instance.user:
+            team_member = list_team.member1
+            other_member = list_team.member2
+        else:
+            team_member = list_team.member2
+            other_member = list_team.member1
+
+        if other_member.expo_token:
+
+            user_language = other_member.lang or 'en'  # Fallback to English if no language is set
+            with translation.override(user_language):
+                if bodyCode == 'list':
+                    body = _(f'Your partner, {team_member.name}, just added a new Shared List: {instance.title}. Dive in and start checking things off together!')
+                elif bodyCode == 'habit':
+                    body = _(f'Your partner, {team_member.name}, just created a new Habit: {instance.name}. Stay on track and motivate each other every step of the way!')
+                elif bodyCode == 'taskdone':
+                    body = _(f'Your partner, {team_member.name}, just completed task on the Shared List: {instance.title}.Keep the momentum going!')
+                else:
+                    body = _(f'Your partner, {team_member.name}, just added a new Task to the Shared List: {instance.title}.Keep the momentum going and crush your goals together!')
+
+            send_message(
+                expo_token=other_member.expo_token,
+                title=title,
+                body=body
+            )
+
+@receiver(post_save, sender=CollaborativeList)
+def partner_createslist_and_shares(instance, created, **kwargs):
+    if created:
+        notify_partner(instance=instance,title=instance.title,bodyCode='list')
+
+@receiver(post_save, sender=Habit)
+def partner_creates_habitslist(instance, created, **kwargs):
+    if created:
+        notify_partner(instance=instance,title=instance.name,bodyCode='habit')
+
+@receiver(post_save, sender=Item)
+def partner_creates_task(instance, created, **kwargs):
+    if created:
+        notify_partner(instance=instance.list,title="New task",bodyCode='task')
+
+previous_done_states = {}
+
+@receiver(pre_save, sender=Item)
+def track_previous_done_state(sender, instance, **kwargs):
+    if instance.id:  # Only check for existing objects
+        previous_instance = sender.objects.get(pk=instance.id)
+        previous_done_states[instance.id] = previous_instance.done  # Store the 'done' state
+
+@receiver(post_save, sender=Item)
+def partner_completes_task(instance, **kwargs):
+    # Fetch the previous 'done' state from pre_save tracking
+    previous_done = previous_done_states.get(instance.id)
+
+    # Ensure previous state exists and check if task was just marked as done
+    if previous_done is not None and not previous_done and instance.done:
+        # Check if the last status change was more than 10 minutes ago
+        if instance.last_status_change and timezone.now() - instance.last_status_change < timedelta(minutes=10):
+            print("Task status was changed less than 10 minutes ago, skipping notification.")
+            return  # Exit if it's less than 10 minutes since the last change
+
+        notify_partner(instance=instance.list, title="Task Completed", bodyCode='taskdone')
+        print('4')
+
+    # Clean up the dictionary after use
+    if instance.id in previous_done_states:
+        del previous_done_states[instance.id]
 
 def send_message(expo_token, title, body):
     expo_url = 'https://exp.host/--/api/v2/push/send'

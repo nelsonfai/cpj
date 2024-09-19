@@ -1,7 +1,7 @@
-# couples_diary_backend/api/serializers.py
 from rest_framework import serializers
-from .models import CustomUser,CollaborativeList,Item,Team,Habit,DailyProgress,Notes
+from .models import CustomUser,CollaborativeList,Item,Team,Habit,DailyProgress,Notes,Gamification,Article,CalendarEvent
 from rest_framework.authtoken.serializers import AuthTokenSerializer
+from django.db.models import Q
 
 class CustomUserSerializer(serializers.ModelSerializer):
     imageurl = serializers.SerializerMethodField()
@@ -13,10 +13,12 @@ class CustomUserSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
+        lang = validated_data.get('lang', 'en')  # Default to 'en' if 'lang' is not provided
+
         user = CustomUser.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
-            expo_token=validated_data['expo_token'],
+            lang=lang
         )
         return user
     def get_imageurl(self, obj):
@@ -117,7 +119,6 @@ class ItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'list', 'text', 'done']
 
 
-
 class CustomAuthTokenSerializer(AuthTokenSerializer):
     def validate(self, attrs):
         email = attrs.get('email')
@@ -132,7 +133,7 @@ class CustomAuthTokenSerializer(AuthTokenSerializer):
 class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
-        fields = ['id', 'unique_id', 'member1', 'member2', 'is_premium']
+        fields = ['id', 'unique_id', 'member1', 'member2']
         read_only_fields = ['id', 'unique_id']
 
     validators = [
@@ -153,9 +154,140 @@ class DailyProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = DailyProgress
         fields = '__all__'
-
 class NotesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notes
         fields = ['id', 'team', 'user', 'title', 'body', 'date','color','tags']
         read_only_fields = ['user','date']
+
+class UserSerializerPublic(serializers.ModelSerializer):
+    imageurl = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'name', 'profile_pic', 'team_invite_code','imageurl']
+    def get_imageurl(self, obj):
+            if obj.profile_pic:
+                return obj.profile_pic.url
+
+
+
+class TeamLeaderboardSerializer(serializers.ModelSerializer):
+    member1 = UserSerializerPublic()
+    member2 = UserSerializerPublic(allow_null=True)  # Member 2 can be null
+    total_points = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Team
+        fields = ['unique_id', 'member1', 'member2', 'total_points']
+
+    def get_total_points(self, obj):
+        # Use the team_points method to get the combined points for the team
+        return obj.team_points()
+
+class GamificationSerializer(serializers.ModelSerializer):
+    user = UserSerializerPublic()
+    total_points = serializers.SerializerMethodField('get_total_points')
+    partner_id = serializers.SerializerMethodField()
+    logged_in_user_id = serializers.SerializerMethodField()
+    logged_in_user_partner_id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Gamification
+        fields = [
+            'user', 'xp_points', 'habits_points', 'list_points', 'notes_points',
+            'event_points', 'total_points', 'partner_id', 'logged_in_user_id', 'logged_in_user_partner_id'
+        ]
+
+    def get_total_points(self, obj):
+        return obj.calculate_total_points()
+
+    def get_partner_id(self, obj):
+        # Fetch the partner's ID based on the user's team association
+        team = Team.objects.filter(Q(member1=obj.user) | Q(member2=obj.user)).first()
+        if team:
+            if team.member1 == obj.user:
+                return team.member2.id if team.member2 else None
+            else:
+                return team.member1.id if team.member1 else None
+        return None
+
+    def get_logged_in_user_id(self, obj):
+        # Get the ID of the logged-in user from the request context
+        request = self.context.get('request')
+        return request.user.id if request else None
+
+    def get_logged_in_user_partner_id(self, obj):
+        # Get the partner's ID for the logged-in user based on their team association
+        request = self.context.get('request')
+        if request:
+            logged_in_user = request.user
+            team = Team.objects.filter(Q(member1=logged_in_user) | Q(member2=logged_in_user)).first()
+            if team:
+                if team.member1 == logged_in_user:
+                    return team.member2.id if team.member2 else None
+                else:
+                    return team.member1.id if team.member1 else None
+        return None
+
+
+
+class ArticleSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    title = serializers.SerializerMethodField()
+    subtitle = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Article
+        fields = ['id', 'title', 'subtitle', 'author_name', 'image', 'image_url','slug']
+
+    def get_image_url(self, obj):
+        if obj.image:
+            return obj.image.url
+        return None
+
+    def get_title(self, obj):
+        lang = self.context.get('language', 'en')
+        return obj.title.get(lang, obj.title.get('en', ''))
+
+    def get_subtitle(self, obj):
+        lang = self.context.get('language', 'en')
+        return obj.subtitle.get(lang, obj.subtitle.get('en', ''))
+
+class ArticleDetailSerializer(serializers.ModelSerializer):
+    title = serializers.SerializerMethodField()
+    subtitle = serializers.SerializerMethodField()
+    body = serializers.SerializerMethodField()
+    quiz = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Article
+        fields = ['id', 'title','created_date', 'subtitle', 'body', 'author_name', 'image', 'image_url', 'color', 'quiz']
+
+    def get_language_specific_field(self, obj, field):
+        lang = self.context.get('language', 'en')
+        return getattr(obj, field).get(lang, getattr(obj, field).get('en', ''))
+
+    def get_title(self, obj):
+        return self.get_language_specific_field(obj, 'title')
+
+    def get_subtitle(self, obj):
+        return self.get_language_specific_field(obj, 'subtitle')
+
+    def get_body(self, obj):
+        return self.get_language_specific_field(obj, 'body')
+
+    def get_quiz(self, obj):
+        return self.get_language_specific_field(obj, 'quiz')
+
+    def get_image_url(self, obj):
+        if obj.image:
+            return obj.image.url
+        return None
+
+class CalendarEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CalendarEvent
+        fields = '__all__'
+        read_only_fields = ('user', 'team')
