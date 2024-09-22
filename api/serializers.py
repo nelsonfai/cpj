@@ -154,11 +154,14 @@ class DailyProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = DailyProgress
         fields = '__all__'
+        
+        
 class NotesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notes
         fields = ['id', 'team', 'user', 'title', 'body', 'date','color','tags']
         read_only_fields = ['user','date']
+
 
 class UserSerializerPublic(serializers.ModelSerializer):
     imageurl = serializers.SerializerMethodField()
@@ -236,10 +239,12 @@ class ArticleSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
     title = serializers.SerializerMethodField()
     subtitle = serializers.SerializerMethodField()
+    user_read = serializers.SerializerMethodField()  # New field for user read status
+    partner_read = serializers.SerializerMethodField()  # New field for partner read status
 
     class Meta:
         model = Article
-        fields = ['id', 'title', 'subtitle', 'author_name', 'image', 'image_url','slug']
+        fields = ['id', 'title', 'subtitle', 'author_name', 'image', 'image_url', 'slug', 'user_read', 'partner_read']
 
     def get_image_url(self, obj):
         if obj.image:
@@ -253,6 +258,33 @@ class ArticleSerializer(serializers.ModelSerializer):
     def get_subtitle(self, obj):
         lang = self.context.get('language', 'en')
         return obj.subtitle.get(lang, obj.subtitle.get('en', ''))
+
+    def get_user_read(self, obj):
+        user = self.context.get('user')
+        if user.is_authenticated:
+            return user in obj.read_by.all()
+        return False
+
+    def get_partner_read(self, obj):
+        """
+        Checks if the partner of the authenticated user has read the article.
+        """
+        user = self.context.get('user')
+        if user.is_authenticated:
+            # Check if the user is part of a team
+            try:
+                team = Team.objects.get(member1=user)  # Check if the user is member1
+                partner = team.member2
+            except Team.DoesNotExist:
+                try:
+                    team = Team.objects.get(member2=user)  # Check if the user is member2
+                    partner = team.member1
+                except Team.DoesNotExist:
+                    partner = None  # User has no team/partner
+                
+            if partner:
+                return partner in obj.read_by.all()
+        return False
 
 class ArticleDetailSerializer(serializers.ModelSerializer):
     title = serializers.SerializerMethodField()

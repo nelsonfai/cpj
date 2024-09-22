@@ -169,21 +169,106 @@ class CollaborativeListCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        # Check if the 'is_shared' query parameter is set to True
+        is_shared = self.request.data.get('isShared', False)
+        # If shared, find the user's team
+        team = None
+        if is_shared:
+            try:
+                # Search for the team where the user is either member1 or member2
+                team = Team.objects.filter(
+                    models.Q(member1=self.request.user) | models.Q(member2=self.request.user)
+                ).first()
+
+                # If no team is found, raise an error
+                if not team:
+                    raise ValidationError("No team found for the current user.")
+            except Team.DoesNotExist:
+                raise ValidationError("No team exists for the current user.")
+
+        # Save the CollaborativeList with the user and team (if found)
+        serializer.save(user=self.request.user, team=team)
 
 class CollaborativeListRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = CollaborativeList.objects.all()
     serializer_class = CollaborativeListSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
+
     def check_object_permissions(self, request, obj):
+        # Permission logic for DELETE method
         if self.request.method == 'DELETE':
             if obj.user == request.user:
                 return True
             else:
                 raise PermissionDenied(detail='You do not have permission to delete this object.', code='notCreatedUser')
 
+        # Permission logic for PATCH method
+        if self.request.method == 'PATCH':
+            # If the user is the owner, allow them to update anything
+            if obj.user == request.user:
+                return True
+
+            # Check if the user is a member of the associated team
+            team_id = request.data.get('team', None)
+            if team_id is not None:
+                try:
+                    team = Team.objects.get(unique_id=team_id)  # Adjust according to your team identification field
+                    if team.member1 == request.user or team.member2 == request.user:
+                        return True
+                except Team.DoesNotExist:
+                    raise PermissionDenied(detail='Invalid team ID provided.', code='invalidTeam')
+
+            # Deny permission if neither owner nor a valid team member
+            raise PermissionDenied(detail='You do not have permission to update this object.', code='noPermission')
+
         return super().check_object_permissions(request, obj)
 
+    def partial_update(self, request, *args, **kwargs):
+        # Get the instance being updated
+        obj = self.get_object()
+
+        # Prepare a dictionary to hold the updated fields
+        updated_fields = {}
+
+        # If the user is the owner, they can update everything
+        if obj.user == request.user:
+            updated_fields.update(request.data)
+        else:
+            # If the user is a team member, restrict fields
+            allowed_fields_for_team_members = {'title', 'color', 'dateline', 'team'}
+
+            # Check if the user is a team member
+            team_id = request.data.get('team', None)
+            if team_id is not None:
+                try:
+                    team = Team.objects.get(unique_id=team_id)
+                    if not (team.member1 == request.user or team.member2 == request.user):
+                        raise PermissionDenied(detail='You do not belong to this team.', code='noPermission')
+                except Team.DoesNotExist:
+                    raise PermissionDenied(detail='Invalid team ID provided.', code='invalidTeam')
+
+            # Filter request data to allowed fields
+            filtered_data = {key: value for key, value in request.data.items() if key in allowed_fields_for_team_members}
+
+            if not filtered_data:
+                raise PermissionDenied(detail='You are only allowed to update the title, color, dateline, and team fields.')
+
+            updated_fields.update(filtered_data)
+
+        # If the user is updating the team, ensure it's valid
+        if 'team' in updated_fields and updated_fields['team'] is not None:
+            try:
+                updated_fields['team'] = Team.objects.get(unique_id=updated_fields['team'])
+            except Team.DoesNotExist:
+                raise PermissionDenied(detail='Invalid team ID provided.', code='invalidTeam')
+
+        # Update the object with the validated fields
+        for attr, value in updated_fields.items():
+            setattr(obj, attr, value)
+        obj.save()
+
+        serializer = self.get_serializer(obj)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 class ItemCreateView(generics.CreateAPIView):
     serializer_class = ItemSerializer
     permission_classes = [permissions.IsAuthenticated, IsItemOwnerOrTeamMember]
@@ -237,7 +322,6 @@ class UserCollaborativeListsView(generics.ListAPIView):
             listitem_count=Count('item'),
             done_item_count=Sum(Case(When(item__done=True, then=1), default=0, output_field=BooleanField()))
         )
-
         return queryset
 
 class TeamInvitationView(APIView):
@@ -318,6 +402,7 @@ class UnpairTeamView(APIView):
                 'message': 'Error unpairing the team.',
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
 class HabitCreateView(generics.CreateAPIView):
     serializer_class = HabitSerializer
     permission_classes = [IsAuthenticated]
@@ -349,13 +434,13 @@ class HabitCreateView(generics.CreateAPIView):
             return response
         except ValidationError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
 class DailyProgressCreateView(generics.CreateAPIView):
     serializer_class = DailyProgressSerializer
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-
 
 # Get all Habits for User and related data for the given day
 class HabitListView(APIView):
@@ -437,9 +522,9 @@ class HabitListView(APIView):
                         'specific_days_of_week':habit.specific_days_of_week,
                         'specific_day_of_month': habit.specific_day_of_month,
                         'frequency': habit.frequency,
-                         'reminder_time': habit.reminder_time,
-                         'isShared':isSharedValue,
-                         'icon':habit.icon
+                        'reminder_time': habit.reminder_time,
+                        'isShared':isSharedValue,
+                        'icon':habit.icon
                     }
                     habits_data.append(habit_data)
             return Response({'habits':habits_data,'limit':limitreached}, status=status.HTTP_200_OK)
@@ -1082,6 +1167,7 @@ class TeamStatsView(APIView):
 
         return Response(response_data)
 
+
 class ArticleListView(generics.ListAPIView):
     serializer_class = ArticleSerializer
 
@@ -1091,8 +1177,10 @@ class ArticleListView(generics.ListAPIView):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['language'] = self.request.query_params.get('lang', 'en')
+        context['user'] = self.request.user if self.request.user.is_authenticated else None  # Add authenticated user to context
         return context
-    
+
+
 class ArticleDetailView(generics.RetrieveAPIView):
     queryset = Article.objects.all()
     serializer_class = ArticleSerializer
@@ -1107,6 +1195,19 @@ class ArticleDetailView(generics.RetrieveAPIView):
         context = super().get_serializer_context()
         context['language'] = self.request.query_params.get('lang', 'en')
         return context
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        
+        # Add user to the `read_by` field if authenticated
+        article = self.get_object()
+        user = request.user
+        
+        if user.is_authenticated:
+            article.read_by.add(user)
+        
+        return response
+
 
 
 class CalendarEventViewSet(viewsets.ModelViewSet):
