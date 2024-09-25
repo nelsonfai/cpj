@@ -30,7 +30,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['cpj.onrender.com','127.0.0.1','8000-nelsonfai-cpj-bygqste0lza.ws-eu110.gitpod.io','new-cameras-leave.loca.lt']
+ALLOWED_HOSTS = ['cpj.onrender.com','127.0.0.1','8000-nelsonfai-cpj-bygqste0lza.ws-eu110.gitpod.io','all-suns-clap.loca.lt']
 
 USE_I18N = True  # Enables Django’s translation machinery
 USE_L10N = True  # Enables localized formatting of data (e.g., dates)
@@ -182,6 +182,12 @@ CORS_ALLOWED_ORIGINS = [
 ]
 '''
 CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'Authorization',
+    'Content-Type',
+    'text/event-stream',
+]
 
 STRIPE_PUBLIC_KEY = config('STRIPE_PUBLIC_KEY')
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')

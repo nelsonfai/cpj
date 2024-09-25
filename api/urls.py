@@ -1,6 +1,6 @@
 
 from django.urls import path,include
-from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done,HabitDeleteView,HabitUpdateView,HabitStatisticsView,UnpairTeamView,ChangeEmailView,ChangePasswordView,TeamHabitSummaryView,NotesListCreateView, NotesDetailView,NotesDeleteView,get_user_habits,UpdateUserFromWebhook,request_password_reset, password_reset_confirm,password_reset_complete,LeaderboardView,TeamStatsView,ArticleDetailView,ArticleListView,CalendarEventViewSet
+from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done,HabitDeleteView,HabitUpdateView,HabitStatisticsView,UnpairTeamView,ChangeEmailView,ChangePasswordView,TeamHabitSummaryView,NotesListCreateView, NotesDetailView,NotesDeleteView,get_user_habits,UpdateUserFromWebhook,request_password_reset, password_reset_confirm,password_reset_complete,LeaderboardView,TeamStatsView,ArticleDetailView,ArticleListView,CalendarEventViewSet,SSEStreamView
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf.urls.static import static
 from django.conf import settings
@@ -16,7 +16,7 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),#used
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('change-email/', ChangeEmailView.as_view(), name='change-email'),
-
+    path('sse/', SSEStreamView.as_view(), name='sse_stream'),
     path('request-password-reset/', request_password_reset, name='request_password_reset'),
     path('password/reset/complete/', password_reset_complete, name='password_reset_complete'),
     path('reset/<str:uidb64>/<str:token>/', password_reset_confirm, name='password_reset_confirm'),
@@ -36,6 +36,7 @@ urlpatterns = [
     path('collaborative-lists/<int:pk>/items/', CollaborativeListItemsView.as_view(), name='collaborative-list-items'),#used
 
     path('articles/', ArticleListView.as_view(), name='article-list'),
+    path('articles/<slug:slug>/', ArticleDetailView.as_view(), name='article-detail'),
     path('articles/<slug:slug>/', ArticleDetailView.as_view(), name='article-detail'),
 
      # Endpoint for creating a new Item

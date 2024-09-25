@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from model_utils import FieldTracker  # Assuming you are using model-utils for tracking
 
 
+
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -71,6 +72,8 @@ class Team(models.Model):
     ismember2sync = models.BooleanField(default=False)
     created_at = models.DateField(auto_now_add=True)
     #team_name = models.CharField(max_length=100,blank=True,null=True)
+    
+
 
     def __str__(self):
         return f"Team {self.unique_id}"
@@ -370,7 +373,20 @@ class Article(models.Model):
     def get_quiz(self, lang='en'):
         return self.get_translated_field('quiz', lang)
 
+    def get_user_quiz_score(self, user):
+        """Returns the quiz score for a specific user."""
+        try:
+            return self.quiz_scores.get(user=user).score
+        except QuizScore.DoesNotExist:
+            return None
 
+    def set_user_quiz_score(self, user, score):
+        """Sets or updates the quiz score for a user."""
+        quiz_score, created = QuizScore.objects.update_or_create(
+            user=user, article=self,
+            defaults={'score': score}
+        )
+        return quiz_score
 """
 Sample Quiz
 {
@@ -394,6 +410,18 @@ Sample Quiz
 }
 
 """
+class QuizScore(models.Model):
+    user = models.ForeignKey('CustomUser', on_delete=models.CASCADE, related_name='quiz_scores')
+    article = models.ForeignKey('Article', on_delete=models.CASCADE, related_name='quiz_scores')
+    score = models.FloatField()  # Store quiz score as a float or integer, depending on your needs
+    date_taken = models.DateTimeField(auto_now_add=True)
+    selected_answers = models.JSONField(default=dict)  # Store the selected answers as a dictionary
+
+    class Meta:
+        unique_together = ('user', 'article')  # Ensure each user can only have one score per article
+
+    def __str__(self):
+        return f"{self.user} - {self.article.get_title()} - Score: {self.score}"
 
 
 class CalendarEvent(models.Model):

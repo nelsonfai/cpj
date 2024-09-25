@@ -2,7 +2,7 @@
 from django.db.models.signals import post_save,pre_save,post_delete
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
-from .models import CustomUser,DailyProgress,Habit,CollaborativeList,Item,Gamification,Notes,CalendarEvent
+from .models import CustomUser,DailyProgress,Habit,CollaborativeList,Item,Gamification,Notes,CalendarEvent,Team
 import random
 import string
 import requests 
@@ -13,7 +13,28 @@ from django.utils import timezone
 from datetime import timedelta,datetime
 from .sendmail import sendWelcomeEmail
 from .middleware import get_current_user
+from .serializers import UserInfoSerializer
+from django.core.cache import cache
 #from onesignal_sdk.client import Client
+
+
+
+
+
+def update_user_cache(user):
+    serializer = UserInfoSerializer(user)
+    cache.set(f'user_info_{user.id}', serializer.data, timeout=None)
+
+@receiver(post_save, sender=Team)
+def team_post_save(sender, instance, **kwargs):
+    # Update cache for both members
+    update_user_cache(instance.member1)
+    if instance.member2:
+        update_user_cache(instance.member2)
+
+@receiver(post_save, sender=CustomUser)
+def user_post_save(sender, instance, **kwargs):
+    update_user_cache(instance)
 
 '''
 @receiver(post_save, sender=CustomUser)
@@ -29,6 +50,10 @@ color = '#c5bef9'
 
 #@receiver (post_save,sender=CustomUser )
 #def create_user_test_instances
+
+
+
+
 
 @receiver(post_save,sender= Habit)
 def habitIdentifier (instance,created,**kwargs):

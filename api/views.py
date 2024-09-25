@@ -3,7 +3,7 @@ from rest_framework import generics, permissions, status,viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.authtoken.models import Token
-from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer,CollaborativeListSerializerExtended,TeamSerializer,HabitSerializer,DailyProgressSerializer,GamificationSerializer,TeamLeaderboardSerializer,UserSerializerPublic,ArticleSerializer,ArticleDetailSerializer,CalendarEventSerializer
+from .serializers import CustomUserSerializer,UserInfoSerializer,CollaborativeListSerializer,ItemSerializer,CollaborativeListSerializerExtended,TeamSerializer,HabitSerializer,DailyProgressSerializer,GamificationSerializer,TeamLeaderboardSerializer,UserSerializerPublic,ArticleSerializer,ArticleDetailSerializer,CalendarEventSerializer,QuizScore
 from rest_framework.authtoken.views import ObtainAuthToken,APIView
 from rest_framework.permissions import IsAuthenticated
 from .models import CollaborativeList,Item,CustomUser,Team,Habit,DailyProgress,Notes,Subscription,Gamification,Article,CalendarEvent
@@ -1148,6 +1148,31 @@ class ArticleDetailView(generics.RetrieveAPIView):
             article.read_by.add(user)
         
         return response
+    def post(self, request, *args, **kwargs):
+            """
+            Handle quiz score submission. Create or update the QuizScore entry.
+            """
+            article = self.get_object()
+            user = request.user
+
+            # Validate and deserialize the incoming data
+            score = request.data.get('score')
+            selected_answers = request.data.get('selected_answers')
+
+            if score is None or selected_answers is None:
+                return Response({"error": "Score and selected answers are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Check if a score already exists for this user and article
+            quiz_score, created = QuizScore.objects.update_or_create(
+                user=user,
+                article=article,
+                defaults={'score': score, 'selected_answers': selected_answers}
+            )
+
+            if created:
+                return Response({"message": "Quiz score created successfully.", "score": quiz_score.score}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({"message": "Quiz score updated successfully.", "score": quiz_score.score}, status=status.HTTP_200_OK)
 
 
 
@@ -1201,3 +1226,59 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+
+from django.http import StreamingHttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
+import time  # Use the synchronous sleep instead of asyncio.sleep
+from rest_framework.authentication import TokenAuthentication,SessionAuthentication
+import sys
+from django.views import View
+from django.utils.decorators import method_decorator
+
+
+
+class SSEStreamView(View):
+
+    def get(self, request):
+        print('SSE STREAM STARTED', file=sys.stderr)
+        print('Request Body',request)
+
+        def event_stream(user_id):
+            last_data = None
+            try:
+                while True:
+                    cache_key = f'user_info_{user_id}'
+                    current_data = cache.get(cache_key)
+
+                    # Log the current data being sent
+                    #print(f"Current data for user {user_id}: {current_data}", file=sys.stderr)
+
+                    if current_data != last_data:
+                        yield f"data: {json.dumps(current_data)}\n\n"
+                        last_data = current_data
+                        #print(f"Sent data: {current_data}", file=sys.stderr)
+
+                    time.sleep(1)
+            except Exception as e:
+                #print(f"Error in event stream: {str(e)}", file=sys.stderr)
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+        try:
+            user_id = 6 # Access logged-in user directly
+            
+            print('user id print',user_id)
+            response = StreamingHttpResponse(event_stream(user_id), content_type='text/event-stream')
+            response['Cache-Control'] = 'no-cache'
+            response['X-Accel-Buffering'] = 'no'
+            print(f"SSE response created: {response}", file=sys.stderr)
+            return response
+        except Exception as e:
+            print(f"Error creating StreamingHttpResponse: {str(e)}", file=sys.stderr)
+            return JsonResponse({'error': str(e)}, status=500)
+
+    def handle_exception(self, exc):
+        print(f"Unhandled exception in SSEStreamView: {str(exc)}", file=sys.stderr)
+        return JsonResponse({'error': str(exc)}, status=500)

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser,CollaborativeList,Item,Team,Habit,DailyProgress,Notes,Gamification,Article,CalendarEvent
+from .models import CustomUser,CollaborativeList,Item,Team,Habit,DailyProgress,Notes,Gamification,Article,CalendarEvent,QuizScore
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from django.db.models import Q
 
@@ -287,6 +287,19 @@ class ArticleSerializer(serializers.ModelSerializer):
             if partner:
                 return partner in obj.read_by.all()
         return False
+    def get_user_quiz_score(self, obj):
+        """
+        Returns the quiz score of the authenticated user for the current article.
+        """
+        user = self.context.get('user')
+        if user.is_authenticated:
+            try:
+                # Fetch the quiz score for the user and the article
+                quiz_score = QuizScore.objects.get(user=user, article=obj)
+                return quiz_score.score
+            except QuizScore.DoesNotExist:
+                return None  # User has not taken the quiz yet
+        return None
 
 class ArticleDetailSerializer(serializers.ModelSerializer):
     title = serializers.SerializerMethodField()
@@ -294,10 +307,11 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
     body = serializers.SerializerMethodField()
     quiz = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
+    user_quiz_score = serializers.SerializerMethodField()  # New field for user quiz score
 
     class Meta:
         model = Article
-        fields = ['id', 'title','created_date', 'subtitle', 'body', 'author_name', 'image', 'image_url', 'color', 'quiz']
+        fields = ['id', 'title','created_date', 'subtitle', 'body', 'author_name', 'image', 'image_url', 'color', 'quiz','user_quiz_score']
 
     def get_language_specific_field(self, obj, field):
         lang = self.context.get('language', 'en')
@@ -319,7 +333,24 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
         if obj.image:
             return obj.image.url
         return None
-
+    def get_user_quiz_score(self, obj):
+        """
+        Returns the quiz score and selected answers of the authenticated user for the current article.
+        """
+        request = self.context.get('request')
+        if request:
+            user = request.user
+            if user.is_authenticated:
+                try:
+                    # Fetch the quiz score for the user and the article
+                    quiz_score = QuizScore.objects.get(user=user, article=obj)
+                    return {
+                        "score": quiz_score.score,
+                        "selected_answers": quiz_score.selected_answers  # Return both score and selected answers
+                    }
+                except QuizScore.DoesNotExist:
+                    return None  # User has not taken the quiz yet
+        return None
 class CalendarEventSerializer(serializers.ModelSerializer):
     class Meta:
         model = CalendarEvent
