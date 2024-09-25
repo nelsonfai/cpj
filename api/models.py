@@ -6,6 +6,7 @@ from django.utils import timezone
 from cloudinary.models import CloudinaryField
 from django.db.models import F
 from django.core.exceptions import ValidationError
+from model_utils import FieldTracker  # Assuming you are using model-utils for tracking
 
 
 class CustomUserManager(BaseUserManager):
@@ -46,7 +47,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     tourStatusHabitsDone = models.BooleanField(default=False)
     productid = models.CharField(max_length=100, blank=True, null=True)
     auto_renew_status = models.BooleanField(default=False)
-    
+    joinNewsletter = models.BooleanField(default=False)
+
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
@@ -68,7 +70,6 @@ class Team(models.Model):
     ismember1sync = models.BooleanField(default=False)
     ismember2sync = models.BooleanField(default=False)
     created_at = models.DateField(auto_now_add=True)
-    
     #team_name = models.CharField(max_length=100,blank=True,null=True)
 
     def __str__(self):
@@ -100,6 +101,8 @@ class CollaborativeList(models.Model):
     color = models.CharField(max_length=40,)
     description = models.TextField( null=True,blank=True)
     dateline= models.DateField(null=True,blank=True)
+    tracker = FieldTracker()
+
     def check_all_item_done(self):
         return not self.item_set.filter(done=False).exists()
     def check_past_dateline(self):
@@ -118,6 +121,7 @@ class Item(models.Model):
     text = models.TextField()
     done = models.BooleanField(default=False)
     last_status_change = models.DateTimeField(null=True, blank=True)
+    tracker = FieldTracker()
 
     def save(self, *args, **kwargs):
         # If the object is being updated, check the 'done' status
@@ -150,6 +154,7 @@ class Habit(models.Model):
     reminder_time = models.DateTimeField(null=True, blank=True)
     specific_days_of_week = models.CharField(max_length=255, null=True, blank=True)
     specific_day_of_month = models.CharField(max_length=255, null=True, blank=True)  # Updated field
+    tracker = FieldTracker()
 
     def get_specific_days_as_list(self):
         if self.specific_days_of_week:
@@ -212,7 +217,7 @@ class DailyProgress(models.Model):
     habit = models.ForeignKey(Habit, on_delete=models.CASCADE)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     date = models.DateField()
-    progress = models.BooleanField(default=False)  
+    progress = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.user.email}'s progress for {self.habit.name} on {self.date}"
     
@@ -231,6 +236,7 @@ class Notes (models.Model):
     body = models.TextField(null=True,blank=True)
     date = models.DateTimeField(auto_now=True)
     tags =models.CharField(max_length=255,null=True,blank=True)
+    tracker = FieldTracker()
 
     def save(self, *args, **kwargs):
         self.date = timezone.now()
@@ -403,6 +409,7 @@ class CalendarEvent(models.Model):
     recurrence = models.CharField(max_length=200, blank=True)
     reminders = models.JSONField(default=list)
     status = models.CharField(max_length=20, default="confirmed")
+    tracker = FieldTracker()
 
     def __str__(self):
         return self.event_title

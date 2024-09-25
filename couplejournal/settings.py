@@ -30,7 +30,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['cpj.onrender.com','127.0.0.1','8000-nelsonfai-cpj-bygqste0lza.ws-eu110.gitpod.io','tiny-lights-invent.loca.lt']
+ALLOWED_HOSTS = ['cpj.onrender.com','127.0.0.1','8000-nelsonfai-cpj-bygqste0lza.ws-eu110.gitpod.io','new-cameras-leave.loca.lt']
 
 USE_I18N = True  # Enables Django’s translation machinery
 USE_L10N = True  # Enables localized formatting of data (e.g., dates)
@@ -81,6 +81,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'api.middleware.CurrentUserMiddleware'
 
 ]
 ROOT_URLCONF = 'couplejournal.urls'

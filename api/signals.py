@@ -1,8 +1,8 @@
 # api/signals.py
-from django.db.models.signals import post_save,pre_save
+from django.db.models.signals import post_save,pre_save,post_delete
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
-from .models import CustomUser,DailyProgress,Habit,CollaborativeList,Item,Gamification,Notes
+from .models import CustomUser,DailyProgress,Habit,CollaborativeList,Item,Gamification,Notes,CalendarEvent
 import random
 import string
 import requests 
@@ -12,6 +12,7 @@ from django.utils import translation
 from django.utils import timezone
 from datetime import timedelta,datetime
 from .sendmail import sendWelcomeEmail
+from .middleware import get_current_user
 #from onesignal_sdk.client import Client
 
 '''
@@ -230,3 +231,88 @@ def send_message(expo_token, title, body):
             print('Failed to send push notification:', response_data)
     except Exception as e:
         print('Error sending push notification:', e)
+
+
+# Data Synching 
+def update_other_member_sync_status(team, user):
+    if team and team.member1 and team.member2:
+        if user == team.member1:
+            team.ismember2sync = False
+        elif user == team.member2:
+            team.ismember1sync = False
+        team.save()
+
+# CollaborativeList signals
+@receiver(post_save, sender=CollaborativeList)
+def update_team_sync_on_list_change(sender, instance, created, **kwargs):
+    user = instance.user if created else get_current_user()
+    if instance.team and (created or instance.tracker.changed()):
+        update_other_member_sync_status(instance.team, user)
+
+@receiver(post_delete, sender=CollaborativeList)
+def update_team_sync_on_list_delete(sender, instance, **kwargs):
+    user = get_current_user()
+    update_other_member_sync_status(instance.team, user)
+
+# Item signals
+@receiver(post_save, sender=Item)
+def update_team_sync_on_item_change(sender, instance, created, **kwargs):
+    user = instance.list.user if created else get_current_user()
+    if created or instance.tracker.changed():
+        update_other_member_sync_status(instance.list.team, user)
+
+@receiver(post_delete, sender=Item)
+def update_team_sync_on_item_delete(sender, instance, **kwargs):
+    user = get_current_user()
+    update_other_member_sync_status(instance.list.team, user)
+
+# Habit signals
+@receiver(post_save, sender=Habit)
+def update_team_sync_on_habit_change(sender, instance, created, **kwargs):
+    user = instance.user if created else get_current_user()
+    if created or instance.tracker.changed():
+        update_other_member_sync_status(instance.team, user)
+
+@receiver(post_delete, sender=Habit)
+def update_team_sync_on_habit_delete(sender, instance, **kwargs):
+    user = get_current_user()
+    update_other_member_sync_status(instance.team, user)
+
+# DailyProgress signals (only create and delete)
+@receiver(post_save, sender=DailyProgress)
+def update_team_sync_on_progress_create(sender, instance, created, **kwargs):
+    user = instance.user if created else get_current_user()
+    today = timezone.now().date()
+
+    # Check if the date of the instance matches today's date
+    if created and instance.date == today:
+        update_other_member_sync_status(instance.habit.team, user)
+
+@receiver(post_delete, sender=DailyProgress)
+def update_team_sync_on_progress_delete(sender, instance, **kwargs):
+    user = get_current_user()
+    update_other_member_sync_status(instance.habit.team, user)
+
+# Notes signals
+@receiver(post_save, sender=Notes)
+def update_team_sync_on_notes_change(sender, instance, created, **kwargs):
+    user = instance.user if created else get_current_user()
+    if created or instance.tracker.changed():
+        update_other_member_sync_status(instance.team, user)
+
+@receiver(post_delete, sender=Notes)
+def update_team_sync_on_notes_delete(sender, instance, **kwargs):
+    user = get_current_user()
+    update_other_member_sync_status(instance.team, user)
+
+# CalendarEvent signals
+@receiver(post_save, sender=CalendarEvent)
+def update_team_sync_on_event_change(sender, instance, created, **kwargs):
+    user = instance.user if created else get_current_user()
+    if created or instance.tracker.changed():
+        update_other_member_sync_status(instance.team, user)
+
+@receiver(post_delete, sender=CalendarEvent)
+def update_team_sync_on_event_delete(sender, instance, **kwargs):
+    user = get_current_user()
+    update_other_member_sync_status(instance.team, user)

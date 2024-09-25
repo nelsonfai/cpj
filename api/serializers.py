@@ -7,18 +7,20 @@ class CustomUserSerializer(serializers.ModelSerializer):
     imageurl = serializers.SerializerMethodField()
     class Meta:
         model = CustomUser
-        fields = ('id', 'email', 'name', 'profile_pic', 'password','lang','expo_token','imageurl','tourStatusSharedListDone','tourStatusNotesDone','tourStatusHabitsDone')
+        fields = ('id', 'email', 'name', 'profile_pic', 'password','lang','expo_token','imageurl','tourStatusSharedListDone','tourStatusNotesDone','tourStatusHabitsDone','joinNewsletter')
         extra_kwargs = {
             'password': {'write_only': True},
         }
 
     def create(self, validated_data):
-        lang = validated_data.get('lang', 'en')  # Default to 'en' if 'lang' is not provided
-
+        lang = validated_data.get('lang', 'en') 
+        print(validated_data)
+        joinNewsletter = validated_data.get('joinNewsletter', False)
         user = CustomUser.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
-            lang=lang
+            lang=lang,
+            joinNewsletter= joinNewsletter
         )
         return user
     def get_imageurl(self, obj):

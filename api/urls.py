@@ -10,7 +10,6 @@ router.register(r'events', CalendarEventViewSet, basename='event')
 
 urlpatterns = [
     path('', include(router.urls)),
-
     path('list-endpoints/', list_endpoints, name='list-endpoints'),
     path('signup/', SignUpView.as_view(), name='signup'), #used
     path('login/', LoginView.as_view(), name='login'),#used
@@ -18,11 +17,9 @@ urlpatterns = [
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     path('change-email/', ChangeEmailView.as_view(), name='change-email'),
 
-
     path('request-password-reset/', request_password_reset, name='request_password_reset'),
     path('password/reset/complete/', password_reset_complete, name='password_reset_complete'),
     path('reset/<str:uidb64>/<str:token>/', password_reset_confirm, name='password_reset_confirm'),
-
 
     path('update-profile/', UserProfileUpdateView.as_view(), name='update-profile'),#used
     path('profile-info/', UserInfoView.as_view(), name='profile-info'),#used

@@ -193,82 +193,21 @@ class CollaborativeListRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyA
     queryset = CollaborativeList.objects.all()
     serializer_class = CollaborativeListSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
-
     def check_object_permissions(self, request, obj):
-        # Permission logic for DELETE method
         if self.request.method == 'DELETE':
             if obj.user == request.user:
                 return True
             else:
                 raise PermissionDenied(detail='You do not have permission to delete this object.', code='notCreatedUser')
-
-        # Permission logic for PATCH method
         if self.request.method == 'PATCH':
-            # If the user is the owner, allow them to update anything
+
             if obj.user == request.user:
-                return True
-
-            # Check if the user is a member of the associated team
-            team_id = request.data.get('team', None)
-            if team_id is not None:
-                try:
-                    team = Team.objects.get(unique_id=team_id)  # Adjust according to your team identification field
-                    if team.member1 == request.user or team.member2 == request.user:
-                        return True
-                except Team.DoesNotExist:
-                    raise PermissionDenied(detail='Invalid team ID provided.', code='invalidTeam')
-
-            # Deny permission if neither owner nor a valid team member
-            raise PermissionDenied(detail='You do not have permission to update this object.', code='noPermission')
+                    return True
+            else:
+                raise PermissionDenied(detail='You do not have permission to Edit this object.', code='notCreatedUser')
 
         return super().check_object_permissions(request, obj)
 
-    def partial_update(self, request, *args, **kwargs):
-        # Get the instance being updated
-        obj = self.get_object()
-
-        # Prepare a dictionary to hold the updated fields
-        updated_fields = {}
-
-        # If the user is the owner, they can update everything
-        if obj.user == request.user:
-            updated_fields.update(request.data)
-        else:
-            # If the user is a team member, restrict fields
-            allowed_fields_for_team_members = {'title', 'color', 'dateline', 'team'}
-
-            # Check if the user is a team member
-            team_id = request.data.get('team', None)
-            if team_id is not None:
-                try:
-                    team = Team.objects.get(unique_id=team_id)
-                    if not (team.member1 == request.user or team.member2 == request.user):
-                        raise PermissionDenied(detail='You do not belong to this team.', code='noPermission')
-                except Team.DoesNotExist:
-                    raise PermissionDenied(detail='Invalid team ID provided.', code='invalidTeam')
-
-            # Filter request data to allowed fields
-            filtered_data = {key: value for key, value in request.data.items() if key in allowed_fields_for_team_members}
-
-            if not filtered_data:
-                raise PermissionDenied(detail='You are only allowed to update the title, color, dateline, and team fields.')
-
-            updated_fields.update(filtered_data)
-
-        # If the user is updating the team, ensure it's valid
-        if 'team' in updated_fields and updated_fields['team'] is not None:
-            try:
-                updated_fields['team'] = Team.objects.get(unique_id=updated_fields['team'])
-            except Team.DoesNotExist:
-                raise PermissionDenied(detail='Invalid team ID provided.', code='invalidTeam')
-
-        # Update the object with the validated fields
-        for attr, value in updated_fields.items():
-            setattr(obj, attr, value)
-        obj.save()
-
-        serializer = self.get_serializer(obj)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 class ItemCreateView(generics.CreateAPIView):
     serializer_class = ItemSerializer
     permission_classes = [permissions.IsAuthenticated, IsItemOwnerOrTeamMember]
@@ -418,6 +357,7 @@ class HabitCreateView(generics.CreateAPIView):
                 error_message = 'You have reached your habit limit.'
                 raise ValidationError(error_message)
             else:
+                """
                 teams = Team.objects.filter(Q(member1=user) | Q(member2=user))
                 if teams:
                     team = teams.first()
@@ -426,6 +366,7 @@ class HabitCreateView(generics.CreateAPIView):
                     else:
                         team.ismember1sync = False
                     team.save()
+                """
                 serializer.save(user=user)
                 
     def create(self, request, *args, **kwargs):
