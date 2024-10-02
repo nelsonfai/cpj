@@ -17,10 +17,6 @@ from .serializers import UserInfoSerializer
 from django.core.cache import cache
 #from onesignal_sdk.client import Client
 
-
-
-
-
 def update_user_cache(user):
     serializer = UserInfoSerializer(user)
     cache.set(f'user_info_{user.id}', serializer.data, timeout=None)
@@ -50,9 +46,6 @@ color = '#c5bef9'
 
 #@receiver (post_save,sender=CustomUser )
 #def create_user_test_instances
-
-
-
 
 
 @receiver(post_save,sender= Habit)

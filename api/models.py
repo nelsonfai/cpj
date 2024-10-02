@@ -73,8 +73,6 @@ class Team(models.Model):
     created_at = models.DateField(auto_now_add=True)
     #team_name = models.CharField(max_length=100,blank=True,null=True)
     
-
-
     def __str__(self):
         return f"Team {self.unique_id}"
 
@@ -193,7 +191,6 @@ class Habit(models.Model):
     def set_previous_day(self, date):
         if self.frequency == 'daily':
             previous_date = date - timedelta(days=1)
-            print('daily',date,previous_date)
         elif self.frequency == 'weekly':
             selected_days = self.get_specific_days_as_list()
             previous_date = date - timedelta(days=1)
@@ -240,7 +237,8 @@ class Notes (models.Model):
     date = models.DateTimeField(auto_now=True)
     tags =models.CharField(max_length=255,null=True,blank=True)
     tracker = FieldTracker()
-
+    def __str__(self):
+        return  self.title
     def save(self, *args, **kwargs):
         self.date = timezone.now()
         super(Notes, self).save(*args, **kwargs)
@@ -435,7 +433,7 @@ class CalendarEvent(models.Model):
     color = models.CharField(max_length=7, default="#FF5733")
     type = models.CharField(max_length=50, default="event")
     recurrence = models.CharField(max_length=200, blank=True)
-    reminders = models.JSONField(default=list)
+    reminders = models.JSONField(default=list,blank=True,null=True)
     status = models.CharField(max_length=20, default="confirmed")
     tracker = FieldTracker()
 

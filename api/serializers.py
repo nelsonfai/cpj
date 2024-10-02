@@ -34,11 +34,12 @@ class UserInfoSerializer(serializers.ModelSerializer):
     mypremium = serializers.SerializerMethodField()
     imageurl = serializers.SerializerMethodField()
     isync = serializers.SerializerMethodField()
-    partner_name = serializers.SerializerMethodField()  # New field for partner's name
+    partner_name = serializers.SerializerMethodField() 
+    partner_image = serializers.SerializerMethodField() 
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id','lang','premium','isync','imageurl','customerid', 'subscription_type','valid_till', 'subscription_code', 'productid','mypremium','tourStatusSharedListDone','tourStatusNotesDone','tourStatusHabitsDone','partner_name')
+        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id','lang','premium','isync','imageurl','customerid', 'subscription_type','valid_till', 'subscription_code', 'productid','mypremium','tourStatusSharedListDone','tourStatusNotesDone','tourStatusHabitsDone','partner_name','partner_image' )
     
     def get_hasTeam(self, user):
         return getattr(user, 'team_member1', None) is not None or getattr(user, 'team_member2', None) is not None
@@ -76,6 +77,16 @@ class UserInfoSerializer(serializers.ModelSerializer):
             return team_member1.member2.name  # Partner is member2
         elif team_member2 and team_member2.member1:
             return team_member2.member1.name  # Partner is member1
+        return None
+    def get_partner_image(self, user):
+        team_member1 = getattr(user, 'team_member1', None)
+        team_member2 = getattr(user, 'team_member2', None)
+        if team_member1 and team_member1.member2:
+            if team_member1.member2.profile_pic:
+                return team_member1.member2.profile_pic.url  # Partner is member2
+        elif team_member2 and team_member2.member1:
+            if team_member2.member1.profile_pic:
+                return team_member2.member1.profile_pic.url  # Partner is member1
         return None
     
 """class ItemSerializer(serializers.ModelSerializer):

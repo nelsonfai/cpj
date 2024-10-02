@@ -40,7 +40,7 @@ from django.db import transaction
 
 from django.contrib.auth.forms import SetPasswordForm
 from .sendmail import sendPassReset
-
+from .signals import send_message
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def list_endpoints(request):
@@ -193,22 +193,26 @@ class CollaborativeListRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyA
     queryset = CollaborativeList.objects.all()
     serializer_class = CollaborativeListSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrTeamMember]
-    def check_object_permissions(self, request, obj):
-        if self.request.method == 'DELETE':
-            if obj.user == request.user:
-                return True
-            else:
-                raise PermissionDenied(detail='You do not have permission to delete this object.', code='notCreatedUser')
-        if self.request.method == 'PATCH':
+    def delete(self, request, *args, **kwargs):
+        print('Delete called')
+        obj = self.get_object()
+        team = obj.team
 
-            if obj.user == request.user:
-                    return True
-            else:
-                raise PermissionDenied(detail='You do not have permission to Edit this object.', code='notCreatedUser')
+        if obj.user == request.user:
+            print('Deleted')
+            obj.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
-        return super().check_object_permissions(request, obj)
+        if team and (team.member1 == request.user or team.member2 == request.user):
+            print('Delete Team called')
+            obj.team = None
+            obj.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        raise PermissionDenied(detail='You do not have permission to delete this object.', code='notCreatedUser')
 
 class ItemCreateView(generics.CreateAPIView):
+
     serializer_class = ItemSerializer
     permission_classes = [permissions.IsAuthenticated, IsItemOwnerOrTeamMember]
 
@@ -506,23 +510,24 @@ class HabitDeleteView(APIView):
     def delete(self, request, habit_id):
         habit = get_object_or_404(Habit, pk=habit_id)
         # Check if the user making the request is the owner of the habit
-        if habit.user != request.user:
+        if habit.team and (request.user == habit.team.member1 or request.user == habit.team.member2) and habit.user != request.user:
+            habit.team = None
+            habit.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        if request.user == habit.user:
+            habit.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        else:
             return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
-        if habit.team and habit.reminder_time:
-            # Check if the user is member1 or member2 of the team
-            if habit.team.member1 == request.user:
-                habit.team.ismember2sync = False
-                habit.team.save()
-            elif habit.team.member2 == request.user:
-                habit.team.ismember1sync = False
-                habit.team.save()
-        habit.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def mark_habit_as_done(request, habit_id):
+
     habit = get_object_or_404(Habit, Q(id=habit_id, user=request.user) | Q(id=habit_id, team__member1=request.user) | Q(id=habit_id, team__member2=request.user))
     # Get the date from the request (assuming it is in the format 'YYYY-MM-DD')
     date_str = request.data.get('date')
@@ -787,22 +792,44 @@ class NotesDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Notes.objects.all()
     serializer_class = NotesSerializer
     permission_classes = [IsAuthenticated]
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if instance.user != request.user:
-            return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
-        self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def delete(self, request, pk):
+        # Retrieve the note or return 404 if not found
+        note = get_object_or_404(Notes, pk=pk)
 
+        # Check if the user is a member of the team (member1 or member2) but not the owner of the note
+        if note.team and (request.user == note.team.member1 or request.user == note.team.member2) and note.user != request.user:
+            # If user is a team member but not the owner, nullify the team field instead of deleting the note
+            note.team = None
+            note.save()
+            return Response({'detail': 'Team set to null instead of deleting the note.'}, status=status.HTTP_204_NO_CONTENT)
+
+        # If the user is the owner of the note, allow deletion
+        if request.user == note.user:
+            note.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        # If neither condition is met, return a permission denied response
+        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 class NotesDeleteView(APIView):
     permission_classes = [IsAuthenticated]
     def delete(self, request, note_id):
+        # Retrieve the note or return 404 if not found
         note = get_object_or_404(Notes, pk=note_id)
-        if note.user != request.user:
-            return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
-        note.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
+        # Check if the user is a member of the team (member1 or member2) but not the owner of the note
+        if note.team and (request.user == note.team.member1 or request.user == note.team.member2) and note.user != request.user:
+            # If user is a team member but not the owner, nullify the team field instead of deleting the note
+            note.team = None
+            note.save()
+            return Response({'detail': 'Team set to null instead of deleting the note.'}, status=status.HTTP_204_NO_CONTENT)
+
+        # If the user is the owner of the note, allow deletion
+        if request.user == note.user:
+            note.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        # If neither condition is met, return a permission denied response
+        return Response({"error": "Permission denied"}, status=status.HTTP_403_FORBIDDEN)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_user_habits(request):
@@ -1182,11 +1209,10 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        start_date = self.request.query_params.get('start_date')
-        end_date = self.request.query_params.get('end_date')
-
+        start_date = '2024-01-01' #self.request.query_params.get('start_date')  
+        end_date = '2024-12-31' # self.request.query_params.get('end_date') 
         if start_date and end_date:
-            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date() 
             end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
             
             # Fetch events for the user within the date range
@@ -1195,7 +1221,6 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
                 user=user,
 
             ).order_by('start_datetime')
-            print(query)
             return query
         
         # If no date range is provided, return events for the next 7 days
@@ -1282,3 +1307,31 @@ class SSEStreamView(View):
     def handle_exception(self, exc):
         print(f"Unhandled exception in SSEStreamView: {str(exc)}", file=sys.stderr)
         return JsonResponse({'error': str(exc)}, status=500)
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def nudge_partner(request, habit_id):
+    try:
+        habit = Habit.objects.get(id=habit_id)
+        if habit.team:
+            team = habit.team
+            current_user = request.user
+
+            if current_user == team.member1:
+                partner = team.member2
+            elif current_user == team.member2:
+                partner = team.member1
+            else:
+                partner = None
+
+            if partner and partner.expo_token:
+                title = f"Habit Reminder from {current_user.username}"
+                body = f"Your partner is nudging you about the habit: {habit.name}"
+                send_message(partner.expo_token, title, body)
+
+    except Exception:
+        # Silently handle any exceptions
+        pass
+
+    # Always return 200 OK
+    return Response({"message": "Request processed"}, status=status.HTTP_200_OK)
