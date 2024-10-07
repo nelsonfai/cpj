@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import CustomUser,CollaborativeList,Item,Team,Habit,DailyProgress,Notes,Gamification,Article,CalendarEvent,QuizScore
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from django.db.models import Q
+from django.utils import timezone
+from datetime import timedelta
 
 class CustomUserSerializer(serializers.ModelSerializer):
     imageurl = serializers.SerializerMethodField()
@@ -36,10 +38,10 @@ class UserInfoSerializer(serializers.ModelSerializer):
     isync = serializers.SerializerMethodField()
     partner_name = serializers.SerializerMethodField() 
     partner_image = serializers.SerializerMethodField() 
-
+    canReview = serializers.SerializerMethodField() 
     class Meta:
         model = CustomUser
-        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id','lang','premium','isync','imageurl','customerid', 'subscription_type','valid_till', 'subscription_code', 'productid','mypremium','tourStatusSharedListDone','tourStatusNotesDone','tourStatusHabitsDone','partner_name','partner_image' )
+        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id','lang','premium','isync','imageurl','customerid', 'subscription_type','valid_till', 'subscription_code', 'productid','mypremium','tourStatusSharedListDone','tourStatusNotesDone','tourStatusHabitsDone','partner_name','partner_image','canReview')
     
     def get_hasTeam(self, user):
         return getattr(user, 'team_member1', None) is not None or getattr(user, 'team_member2', None) is not None
@@ -88,7 +90,16 @@ class UserInfoSerializer(serializers.ModelSerializer):
             if team_member2.member1.profile_pic:
                 return team_member2.member1.profile_pic.url  # Partner is member1
         return None
-    
+    def get_canReview(self, user):
+        if user.hasReview:
+            return False  
+        # Check if the account was created more than 3 days ago
+        account_age = timezone.now() - user.date_joined
+        if account_age < timedelta(days=3):
+            return False  # User's account is not old enough to leave a review
+
+        return True
+
 """class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item

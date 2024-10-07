@@ -15,6 +15,7 @@ from .sendmail import sendWelcomeEmail
 from .middleware import get_current_user
 from .serializers import UserInfoSerializer
 from django.core.cache import cache
+from django.db.models import Q
 #from onesignal_sdk.client import Client
 
 def update_user_cache(user):
@@ -259,6 +260,16 @@ def update_other_member_sync_status(team, user):
         elif user == team.member2:
             team.ismember1sync = False
         team.save()
+
+# CustomUser signals
+@receiver(post_save, sender=CustomUser)
+def update_team_sync_on_user_change(sender, instance, **kwargs):
+    # Check if the user is part of a team
+    team = Team.objects.filter(Q(member1=instance) | Q(member2=instance)).first()
+    
+    # If the user has a team and the name or premium status has changed, update sync
+    if team and (instance.tracker.has_changed('name') or instance.tracker.has_changed('premium')):
+        update_other_member_sync_status(team, instance)
 
 # CollaborativeList signals
 @receiver(post_save, sender=CollaborativeList)

@@ -49,6 +49,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     productid = models.CharField(max_length=100, blank=True, null=True)
     auto_renew_status = models.BooleanField(default=False)
     joinNewsletter = models.BooleanField(default=False)
+    hasReview = models.BooleanField(default=False)
+    date_joined = models.DateTimeField(auto_now_add=True)  # Automatically set at creation
+
+    tracker = FieldTracker()
+
 
     objects = CustomUserManager()
 
@@ -234,14 +239,11 @@ class Notes (models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     body = models.TextField(null=True,blank=True)
-    date = models.DateTimeField(auto_now=True)
+    date = models.DateTimeField(auto_now_add=True)
     tags =models.CharField(max_length=255,null=True,blank=True)
     tracker = FieldTracker()
     def __str__(self):
         return  self.title
-    def save(self, *args, **kwargs):
-        self.date = timezone.now()
-        super(Notes, self).save(*args, **kwargs)
 
 
 class Gamification(models.Model):

@@ -1,6 +1,6 @@
 
 from django.urls import path,include
-from .views import SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done,HabitDeleteView,HabitUpdateView,HabitStatisticsView,UnpairTeamView,ChangeEmailView,ChangePasswordView,TeamHabitSummaryView,NotesListCreateView, NotesDetailView,NotesDeleteView,get_user_habits,UpdateUserFromWebhook,request_password_reset, password_reset_confirm,password_reset_complete,LeaderboardView,TeamStatsView,ArticleDetailView,ArticleListView,CalendarEventViewSet,SSEStreamView,nudge_partner
+from .views import DeleteAccountView, SignUpView, LoginView,UserProfileUpdateView,UserInfoView,LogoutView,CollaborativeListCreateView,CollaborativeListRetrieveUpdateDestroyView,ItemCreateView,ItemRetrieveUpdateDestroyView,list_endpoints,UserCollaborativeListsView,CollaborativeListItemsView,TeamInvitationView,HabitCreateView,DailyProgressCreateView,HabitListView,mark_habit_as_done,HabitDeleteView,HabitUpdateView,HabitStatisticsView,UnpairTeamView,ChangeEmailView,ChangePasswordView,TeamHabitSummaryView,NotesListCreateView, NotesDetailView,NotesDeleteView,get_user_habits,UpdateUserFromWebhook,request_password_reset, password_reset_confirm,password_reset_complete,LeaderboardView,TeamStatsView,ArticleDetailView,ArticleListView,CalendarEventViewSet,SSEStreamView,nudge_partner
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf.urls.static import static
 from django.conf import settings
@@ -62,6 +62,8 @@ urlpatterns = [
     path('update_user_from_webhook/', UpdateUserFromWebhook.as_view(), name='update_user_from_webhook'),
     #Game Mood
     path('leaderboard/', LeaderboardView.as_view(), name='leaderboard'),
+    path('delete-account/', DeleteAccountView.as_view(), name='delete-account'),
+
 ]
 TeamHabitSummaryView
 urlpatterns+=staticfiles_urlpatterns()

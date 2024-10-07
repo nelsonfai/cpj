@@ -273,7 +273,6 @@ class TeamInvitationView(APIView):
     def post(self, request, invite_code):
         # Get the logged-in user
         current_user = self.request.user
-
         # Check if the user is already a member of any team
         user_in_team = Team.objects.filter(Q(member1=current_user) | Q(member2=current_user)).exists()
         if user_in_team:
@@ -293,7 +292,7 @@ class TeamInvitationView(APIView):
 
         # Create a new team with the invited user as member 1 and the current user as member 2
         team = Team.objects.create(
-            unique_id=self.generate_unique_team_id(),
+            unique_id=self.generate_unique_team_id(8),
             member1=invited_user,
             member2=current_user,
         )
@@ -303,6 +302,16 @@ class TeamInvitationView(APIView):
         current_user_serializer = UserInfoSerializer(current_user)
         team_serializer = TeamSerializer(team)
 
+        # Generate and assign new invite codes for both users
+        new_invite_code_for_current_user = self.generate_unique_team_id(6)
+        new_invite_code_for_invited_user = self.generate_unique_team_id(6)
+
+        current_user.team_invite_code = new_invite_code_for_current_user
+        invited_user.team_invite_code = new_invite_code_for_invited_user
+
+        # Save the updated invite codes
+        current_user.save()
+        invited_user.save()
         # Access `.data` for serialized objects
         response_data = {
             'invited_user': invited_user_serializer.data,
@@ -312,9 +321,9 @@ class TeamInvitationView(APIView):
 
         return Response(response_data, status=status.HTTP_201_CREATED)
 
-    def generate_unique_team_id(self):
+    def generate_unique_team_id(self,legnth):
         # You should implement a method to generate a unique team ID
-        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=legnth))
 
 class UnpairTeamView(APIView):
     permission_classes = [IsAuthenticated]
@@ -469,7 +478,7 @@ class HabitListView(APIView):
                         'frequency': habit.frequency,
                         'reminder_time': habit.reminder_time,
                         'isShared':isSharedValue,
-                        'icon':habit.icon
+                        'icon':habit.icon,
                     }
                     habits_data.append(habit_data)
             return Response({'habits':habits_data,'limit':limitreached}, status=status.HTTP_200_OK)
@@ -815,6 +824,7 @@ class NotesDeleteView(APIView):
     def delete(self, request, note_id):
         # Retrieve the note or return 404 if not found
         note = get_object_or_404(Notes, pk=note_id)
+        raise ValidationError()
 
         # Check if the user is a member of the team (member1 or member2) but not the owner of the note
         if note.team and (request.user == note.team.member1 or request.user == note.team.member2) and note.user != request.user:
@@ -1202,41 +1212,60 @@ class ArticleDetailView(generics.RetrieveAPIView):
                 return Response({"message": "Quiz score updated successfully.", "score": quiz_score.score}, status=status.HTTP_200_OK)
 
 
-
 class CalendarEventViewSet(viewsets.ModelViewSet):
     serializer_class = CalendarEventSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        start_date = '2024-01-01' #self.request.query_params.get('start_date')  
-        end_date = '2024-12-31' # self.request.query_params.get('end_date') 
-        if start_date and end_date:
-            start_date = datetime.strptime(start_date, '%Y-%m-%d').date() 
-            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-            
-            # Fetch events for the user within the date range
-            
-            query = CalendarEvent.objects.filter(
-                user=user,
-
-            ).order_by('start_datetime')
-            return query
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
         
-        # If no date range is provided, return events for the next 7 days
-        today = timezone.now().date()
+        # If no start_date is provided, return no events for the list view
+        if not start_date and not self.kwargs.get('pk'):
+            return CalendarEvent.objects.none()
+
+        # If accessing a specific event by ID (pk), don't apply date filters
+        if self.kwargs.get('pk'):
+            return CalendarEvent.objects.filter(
+                Q(user=user) | Q(team__member1=user) | Q(team__member2=user)
+            )
+
+        # Apply date filters for the event list view
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
         return CalendarEvent.objects.filter(
-            user=user,
-            start_datetime__date__gte=today,
-            end_datetime__date__lte=today + timedelta(days=7)
+            (Q(user=user) | Q(team__member1=user) | Q(team__member2=user)) &
+            (Q(start_datetime__date__range=(start_date, end_date)) | Q(end_datetime__date__range=(start_date, end_date)))
         ).order_by('start_datetime')
+    
+        """
+        query = CalendarEvent.objects.filter(
+            (Q(user=user) | Q(team__member1=user) | Q(team__member2=user)) &
+            (Q(start_datetime__date__lte=start_date, end_datetime__date__gte=start_date))
+        ).order_by('start_datetime')
+        """
+
+
+
+        return query
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(user=request.user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
 
+            user = request.user
+            is_shared = serializer.validated_data.get('is_shared', False)
+            team = None
+
+            # Assign team if the event is shared
+            if is_shared:
+                team = Team.objects.filter(Q(member1=user) | Q(member2=user)).first()
+
+            # Save the event with the user and team
+            serializer.save(user=user, team=team)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         if instance.user != request.user:
@@ -1252,7 +1281,6 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
         serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
-
 from django.http import StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
@@ -1262,14 +1290,17 @@ from rest_framework.authentication import TokenAuthentication,SessionAuthenticat
 import sys
 from django.views import View
 from django.utils.decorators import method_decorator
-
-
+from django.contrib.auth.models import AnonymousUser
 
 class SSEStreamView(View):
-
     def get(self, request):
         print('SSE STREAM STARTED', file=sys.stderr)
-        print('Request Body',request)
+        print('Request Headers', request.headers, file=sys.stderr)
+
+        user = self.get_authenticated_user(request)
+        if user is None:
+            print('Unauthenticated user attempted to access SSE', file=sys.stderr)
+            return JsonResponse({'error': 'Authentication required'}, status=401)
 
         def event_stream(user_id):
             last_data = None
@@ -1277,24 +1308,20 @@ class SSEStreamView(View):
                 while True:
                     cache_key = f'user_info_{user_id}'
                     current_data = cache.get(cache_key)
-
-                    # Log the current data being sent
-                    #print(f"Current data for user {user_id}: {current_data}", file=sys.stderr)
-
                     if current_data != last_data:
                         yield f"data: {json.dumps(current_data)}\n\n"
                         last_data = current_data
-                        #print(f"Sent data: {current_data}", file=sys.stderr)
+                        print(f"Sent data: {current_data}", file=sys.stderr)
 
                     time.sleep(1)
             except Exception as e:
-                #print(f"Error in event stream: {str(e)}", file=sys.stderr)
+                print(f"Error in event stream: {str(e)}", file=sys.stderr)
                 yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
         try:
-            user_id = 6 # Access logged-in user directly
-            
-            print('user id print',user_id)
+            user_id = user.id
+            print('User ID:', user_id, file=sys.stderr)
+
             response = StreamingHttpResponse(event_stream(user_id), content_type='text/event-stream')
             response['Cache-Control'] = 'no-cache'
             response['X-Accel-Buffering'] = 'no'
@@ -1304,10 +1331,27 @@ class SSEStreamView(View):
             print(f"Error creating StreamingHttpResponse: {str(e)}", file=sys.stderr)
             return JsonResponse({'error': str(e)}, status=500)
 
+    def get_authenticated_user(self, request):
+        # Check for session-based authentication
+        if request.user and request.user.is_authenticated:
+            return request.user
+
+        # Check for token-based authentication
+        auth_header = request.headers.get('Authorization')
+        if auth_header:
+            try:
+                token_key = auth_header.split()[1]
+                token = Token.objects.get(key=token_key)
+                return token.user
+            except (IndexError, Token.DoesNotExist):
+                pass
+
+        return None
+
     def handle_exception(self, exc):
         print(f"Unhandled exception in SSEStreamView: {str(exc)}", file=sys.stderr)
         return JsonResponse({'error': str(exc)}, status=500)
-    
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def nudge_partner(request, habit_id):
@@ -1335,3 +1379,33 @@ def nudge_partner(request, habit_id):
 
     # Always return 200 OK
     return Response({"message": "Request processed"}, status=status.HTTP_200_OK)
+
+
+class DeleteAccountView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def delete(self, request, *args, **kwargs):
+        user = request.user  # Get the authenticated user
+
+        # Check if the user belongs to a team and handle it accordingly
+        team = Team.objects.filter(Q(member1=user) | Q(member2=user)).first()
+        
+        if team:
+            team.delete()
+        try:
+            # Start transaction: delete user and related data
+            user.delete()
+            # Success response
+            return Response(
+                {"message": "Your account has been successfully deleted."},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            # Rollback transaction in case of any error
+            transaction.set_rollback(True)
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
