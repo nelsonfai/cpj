@@ -824,7 +824,6 @@ class NotesDeleteView(APIView):
     def delete(self, request, note_id):
         # Retrieve the note or return 404 if not found
         note = get_object_or_404(Notes, pk=note_id)
-        raise ValidationError()
 
         # Check if the user is a member of the team (member1 or member2) but not the owner of the note
         if note.team and (request.user == note.team.member1 or request.user == note.team.member2) and note.user != request.user:
@@ -844,9 +843,12 @@ class NotesDeleteView(APIView):
 @permission_classes([IsAuthenticated])
 def get_user_habits(request):
     user = request.user
-    user_habits = Habit.objects.filter(user=user)
+    user_habits = Habit.objects.filter(user=user, reminder_time__isnull=False)
+    
+    # Filter team habits with reminder times
     team_habits = Habit.objects.filter(
-        Q(team__member1=user) | Q(team__member2=user)
+        (Q(team__member1=user) | Q(team__member2=user)) & 
+        Q(reminder_time__isnull=False)
     )
     teams = Team.objects.filter(Q(member1=user) | Q(member2=user))
     if teams:
@@ -1211,6 +1213,11 @@ class ArticleDetailView(generics.RetrieveAPIView):
             else:
                 return Response({"message": "Quiz score updated successfully.", "score": quiz_score.score}, status=status.HTTP_200_OK)
 
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from django.db.models import Q
+from datetime import datetime
 
 class CalendarEventViewSet(viewsets.ModelViewSet):
     serializer_class = CalendarEventSerializer
@@ -1239,33 +1246,41 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
             (Q(user=user) | Q(team__member1=user) | Q(team__member2=user)) &
             (Q(start_datetime__date__range=(start_date, end_date)) | Q(end_datetime__date__range=(start_date, end_date)))
         ).order_by('start_datetime')
-    
-        """
-        query = CalendarEvent.objects.filter(
-            (Q(user=user) | Q(team__member1=user) | Q(team__member2=user)) &
-            (Q(start_datetime__date__lte=start_date, end_datetime__date__gte=start_date))
-        ).order_by('start_datetime')
-        """
-
-
-
-        return query
 
     def create(self, request, *args, **kwargs):
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-            user = request.user
-            is_shared = serializer.validated_data.get('is_shared', False)
-            team = None
+        user = request.user
+        is_shared = serializer.validated_data.get('is_shared', False)
+        team = None
 
+        # Assign team if the event is shared
+        if is_shared:
+            team = Team.objects.filter(Q(member1=user) | Q(member2=user)).first()
+
+        # Save the event with the user and team
+        serializer.save(user=user, team=team)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        # Handle the team logic for updates
+        is_shared = serializer.validated_data.get('is_shared', instance.is_shared)
+        team = None
+
+        if is_shared:
             # Assign team if the event is shared
-            if is_shared:
-                team = Team.objects.filter(Q(member1=user) | Q(member2=user)).first()
+            team = Team.objects.filter(Q(member1=request.user) | Q(member2=request.user)).first()
 
-            # Save the event with the user and team
-            serializer.save(user=user, team=team)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        # If not shared, set team to null
+        serializer.save(team=team)
+        return Response(serializer.data)
+
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         if instance.user != request.user:
@@ -1280,7 +1295,9 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+
+
+
 from django.http import StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
@@ -1294,12 +1311,8 @@ from django.contrib.auth.models import AnonymousUser
 
 class SSEStreamView(View):
     def get(self, request):
-        print('SSE STREAM STARTED', file=sys.stderr)
-        print('Request Headers', request.headers, file=sys.stderr)
-
         user = self.get_authenticated_user(request)
         if user is None:
-            print('Unauthenticated user attempted to access SSE', file=sys.stderr)
             return JsonResponse({'error': 'Authentication required'}, status=401)
 
         def event_stream(user_id):
@@ -1311,24 +1324,23 @@ class SSEStreamView(View):
                     if current_data != last_data:
                         yield f"data: {json.dumps(current_data)}\n\n"
                         last_data = current_data
-                        print(f"Sent data: {current_data}", file=sys.stderr)
+                        
+                        # Clear the changed data after sending
+                        team = Team.objects.filter(Q(member1_id=user_id) | Q(member2_id=user_id)).first()
+                        if team:
+                            team.clear_changed_data(user)
 
                     time.sleep(1)
             except Exception as e:
-                print(f"Error in event stream: {str(e)}", file=sys.stderr)
                 yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
         try:
             user_id = user.id
-            print('User ID:', user_id, file=sys.stderr)
-
             response = StreamingHttpResponse(event_stream(user_id), content_type='text/event-stream')
             response['Cache-Control'] = 'no-cache'
             response['X-Accel-Buffering'] = 'no'
-            print(f"SSE response created: {response}", file=sys.stderr)
             return response
         except Exception as e:
-            print(f"Error creating StreamingHttpResponse: {str(e)}", file=sys.stderr)
             return JsonResponse({'error': str(e)}, status=500)
 
     def get_authenticated_user(self, request):

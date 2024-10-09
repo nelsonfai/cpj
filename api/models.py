@@ -7,7 +7,7 @@ from cloudinary.models import CloudinaryField
 from django.db.models import F
 from django.core.exceptions import ValidationError
 from model_utils import FieldTracker  # Assuming you are using model-utils for tracking
-
+import json
 
 
 class CustomUserManager(BaseUserManager):
@@ -76,10 +76,48 @@ class Team(models.Model):
     ismember1sync = models.BooleanField(default=False)
     ismember2sync = models.BooleanField(default=False)
     created_at = models.DateField(auto_now_add=True)
+        # New fields to store changed data types
+    
+    member1_changed_data = models.TextField(default='[]')
+    member2_changed_data = models.TextField(default='[]')
     #team_name = models.CharField(max_length=100,blank=True,null=True)
     
     def __str__(self):
         return f"Team {self.unique_id}"
+    def get_member1_changed_data(self):
+            return json.loads(self.member1_changed_data)
+
+    def set_member1_changed_data(self, data):
+            self.member1_changed_data = json.dumps(data)
+
+    def get_member2_changed_data(self):
+            return json.loads(self.member2_changed_data)
+
+    def set_member2_changed_data(self, data):
+            self.member2_changed_data = json.dumps(data)
+    def update_changed_data(self, user, data_type):
+        if user == self.member1:
+            changed_data = self.get_member1_changed_data()
+            if data_type not in changed_data:
+                changed_data.append(data_type)
+                self.set_member1_changed_data(changed_data)
+                self.ismember2sync = False
+        elif user == self.member2:
+            changed_data = self.get_member2_changed_data()
+            if data_type not in changed_data:
+                changed_data.append(data_type)
+                self.set_member2_changed_data(changed_data)
+                self.ismember1sync = False
+        self.save()
+
+    def clear_changed_data(self, user):
+        if user == self.member1:
+            self.set_member1_changed_data([])
+            self.ismember2sync = True
+        elif user == self.member2:
+            self.set_member2_changed_data([])
+            self.ismember1sync = True
+        self.save()
 
     def team_points(self):
         """
@@ -158,6 +196,7 @@ class Habit(models.Model):
     start_date = models.DateField()
     end_date = models.DateField( blank=True,null=True)
     reminder_time = models.DateTimeField(null=True, blank=True)
+    sync_time = models.BooleanField(default=False)
     specific_days_of_week = models.CharField(max_length=255, null=True, blank=True)
     specific_day_of_month = models.CharField(max_length=255, null=True, blank=True)  # Updated field
     tracker = FieldTracker()

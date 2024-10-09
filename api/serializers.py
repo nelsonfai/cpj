@@ -38,10 +38,11 @@ class UserInfoSerializer(serializers.ModelSerializer):
     isync = serializers.SerializerMethodField()
     partner_name = serializers.SerializerMethodField() 
     partner_image = serializers.SerializerMethodField() 
-    canReview = serializers.SerializerMethodField() 
+    canReview = serializers.SerializerMethodField()
+    changed_data = serializers.SerializerMethodField()
     class Meta:
         model = CustomUser
-        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id','lang','premium','isync','imageurl','customerid', 'subscription_type','valid_till', 'subscription_code', 'productid','mypremium','tourStatusSharedListDone','tourStatusNotesDone','tourStatusHabitsDone','partner_name','partner_image','canReview')
+        fields = ('id', 'email', 'name', 'profile_pic', 'team_invite_code', 'hasTeam', 'team_id','lang','premium','isync','imageurl','customerid', 'subscription_type','valid_till', 'subscription_code', 'productid','mypremium','tourStatusSharedListDone','tourStatusNotesDone','tourStatusHabitsDone','partner_name','partner_image','canReview','changed_data')
     
     def get_hasTeam(self, user):
         return getattr(user, 'team_member1', None) is not None or getattr(user, 'team_member2', None) is not None
@@ -99,6 +100,20 @@ class UserInfoSerializer(serializers.ModelSerializer):
             return False  # User's account is not old enough to leave a review
 
         return True
+    
+    def get_changed_data(self, user):
+        team = Team.objects.filter(Q(member1=user) | Q(member2=user)).first()
+        if team:
+            if user == team.member1:
+                return team.get_member1_changed_data()
+            elif user == team.member2:
+                return team.get_member2_changed_data()
+        return []
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['premium'] = instance.is_premium
+        return representation
 
 """class ItemSerializer(serializers.ModelSerializer):
     class Meta:

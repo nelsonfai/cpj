@@ -253,95 +253,107 @@ def send_message(expo_token, title, body):
 
 
 # Data Synching 
-def update_other_member_sync_status(team, user):
+def update_other_member_sync_status(team, user, data_type):
     if team and team.member1 and team.member2:
         if user == team.member1:
             team.ismember2sync = False
+            changed_data = team.get_member2_changed_data()
+            if data_type not in changed_data:
+                changed_data.append(data_type)
+                team.set_member2_changed_data(changed_data)
         elif user == team.member2:
             team.ismember1sync = False
+            changed_data = team.get_member1_changed_data()
+            if data_type not in changed_data:
+                changed_data.append(data_type)
+                team.set_member1_changed_data(changed_data)
         team.save()
 
-# CustomUser signals
-@receiver(post_save, sender=CustomUser)
-def update_team_sync_on_user_change(sender, instance, **kwargs):
-    # Check if the user is part of a team
-    team = Team.objects.filter(Q(member1=instance) | Q(member2=instance)).first()
-    
-    # If the user has a team and the name or premium status has changed, update sync
-    if team and (instance.tracker.has_changed('name') or instance.tracker.has_changed('premium')):
-        update_other_member_sync_status(team, instance)
+
 
 # CollaborativeList signals
 @receiver(post_save, sender=CollaborativeList)
 def update_team_sync_on_list_change(sender, instance, created, **kwargs):
     user = instance.user if created else get_current_user()
     if instance.team and (created or instance.tracker.changed()):
-        update_other_member_sync_status(instance.team, user)
+        instance.team.update_changed_data(user, 'collaborative_list')
 
 @receiver(post_delete, sender=CollaborativeList)
 def update_team_sync_on_list_delete(sender, instance, **kwargs):
     user = get_current_user()
-    update_other_member_sync_status(instance.team, user)
+    if instance.team:
+        instance.team.update_changed_data(user, 'collaborative_list')
 
 # Item signals
 @receiver(post_save, sender=Item)
 def update_team_sync_on_item_change(sender, instance, created, **kwargs):
     user = instance.list.user if created else get_current_user()
-    if created or instance.tracker.changed():
-        update_other_member_sync_status(instance.list.team, user)
+    if instance.list.team and (created or instance.tracker.changed()):
+        instance.list.team.update_changed_data(user, 'item')
 
 @receiver(post_delete, sender=Item)
 def update_team_sync_on_item_delete(sender, instance, **kwargs):
     user = get_current_user()
-    update_other_member_sync_status(instance.list.team, user)
+    if instance.list.team:
+        instance.list.team.update_changed_data(user, 'item')
 
 # Habit signals
 @receiver(post_save, sender=Habit)
 def update_team_sync_on_habit_change(sender, instance, created, **kwargs):
     user = instance.user if created else get_current_user()
-    if created or instance.tracker.changed():
-        update_other_member_sync_status(instance.team, user)
+    if instance.team and (created or instance.tracker.changed()):
+        instance.team.update_changed_data(user, 'habit')
 
 @receiver(post_delete, sender=Habit)
 def update_team_sync_on_habit_delete(sender, instance, **kwargs):
     user = get_current_user()
-    update_other_member_sync_status(instance.team, user)
+    if instance.team:
+        instance.team.update_changed_data(user, 'habit')
 
 # DailyProgress signals (only create and delete)
 @receiver(post_save, sender=DailyProgress)
 def update_team_sync_on_progress_create(sender, instance, created, **kwargs):
     user = instance.user if created else get_current_user()
     today = timezone.now().date()
-
-    # Check if the date of the instance matches today's date
-    if created and instance.date == today:
-        update_other_member_sync_status(instance.habit.team, user)
+    
+    if created and instance.date == today and instance.habit.team:
+        instance.habit.team.update_changed_data(user, 'daily_progress')
 
 @receiver(post_delete, sender=DailyProgress)
 def update_team_sync_on_progress_delete(sender, instance, **kwargs):
     user = get_current_user()
-    update_other_member_sync_status(instance.habit.team, user)
+    if instance.habit.team:
+        instance.habit.team.update_changed_data(user, 'daily_progress')
 
 # Notes signals
 @receiver(post_save, sender=Notes)
 def update_team_sync_on_notes_change(sender, instance, created, **kwargs):
     user = instance.user if created else get_current_user()
-    if created or instance.tracker.changed():
-        update_other_member_sync_status(instance.team, user)
+    if instance.team and (created or instance.tracker.changed()):
+        instance.team.update_changed_data(user, 'notes')
 
 @receiver(post_delete, sender=Notes)
 def update_team_sync_on_notes_delete(sender, instance, **kwargs):
     user = get_current_user()
-    update_other_member_sync_status(instance.team, user)
+    if instance.team:
+        instance.team.update_changed_data(user, 'notes')
 
 # CalendarEvent signals
 @receiver(post_save, sender=CalendarEvent)
 def update_team_sync_on_event_change(sender, instance, created, **kwargs):
     user = instance.user if created else get_current_user()
-    if created or instance.tracker.changed():
-        update_other_member_sync_status(instance.team, user)
+    if instance.team and (created or instance.tracker.changed()):
+        instance.team.update_changed_data(user, 'calendar_event')
 
 @receiver(post_delete, sender=CalendarEvent)
 def update_team_sync_on_event_delete(sender, instance, **kwargs):
     user = get_current_user()
-    update_other_member_sync_status(instance.team, user)
+    if instance.team:
+        instance.team.update_changed_data(user, 'calendar_event')
+
+# CustomUser signals
+@receiver(post_save, sender=CustomUser)
+def update_team_sync_on_user_change(sender, instance, **kwargs):
+    teams = Team.objects.filter(Q(member1=instance) | Q(member2=instance))
+    for team in teams:
+        team.update_changed_data(instance, 'user_info')
