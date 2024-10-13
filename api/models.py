@@ -480,3 +480,31 @@ class CalendarEvent(models.Model):
 
     def __str__(self):
         return self.event_title
+    
+
+class CalendarEvent(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    summary = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    location = models.CharField(max_length=255, blank=True)
+    color = models.CharField(max_length=50, blank=True)
+    team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True)
+    type = models.CharField(max_length=50, default="event")
+    event_source = models.CharField(max_length=50, default="habits_us")
+    recurrence = models.TextField(blank=True, null=True)
+    recurrence_type = models.CharField(max_length=50, blank=True, null=True)
+    recurrence_days = models.JSONField(default=list, blank=True)
+    recurrence_day_of_month = models.JSONField(default=list, blank=True)
+    reminders = models.JSONField(default=list, blank=True)
+    status = models.CharField(max_length=50, default='confirmed')
+    created = models.DateTimeField(auto_now_add=True)
+    last_modified = models.DateTimeField(auto_now=True)
+    sequence = models.IntegerField(default=0)
+    url = models.URLField(blank=True)
+    attachments = models.JSONField(default=list, blank=True)
+    tracker = FieldTracker()
+
+    def __str__(self):
+        return f" (Event: {self.user}"

@@ -388,8 +388,39 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
                 except QuizScore.DoesNotExist:
                     return None  # User has not taken the quiz yet
         return None
+
 class CalendarEventSerializer(serializers.ModelSerializer):
+    is_shared = serializers.BooleanField(required=False)
+
     class Meta:
         model = CalendarEvent
-        fields = '__all__'
-        read_only_fields = ('user', 'team')
+        fields = ['id', 'summary', 'description', 'start_time', 'end_time', 'location', 'color', 'is_shared', 'user', 'team', 'type', 'event_source', 'recurrence', 'recurrence_type', 'recurrence_days', 'recurrence_day_of_month', 'reminders', 'status']
+        read_only_fields = ['user', 'team']
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['is_shared'] = instance.team is not None
+        return ret
+
+    def create(self, validated_data):
+        is_shared = validated_data.pop('is_shared', False)
+        user = self.context['request'].user
+        team = None
+
+        if is_shared:
+            team = Team.objects.filter(Q(member1=user) | Q(member2=user)).first()
+
+        event = CalendarEvent.objects.create(user=user, team=team, **validated_data)
+        return event
+
+    def update(self, instance, validated_data):
+        is_shared = validated_data.pop('is_shared', instance.team is not None)
+        user = self.context['request'].user
+
+        if is_shared and not instance.team:
+            team = Team.objects.filter(Q(member1=user) | Q(member2=user)).first()
+            instance.team = team
+        elif not is_shared:
+            instance.team = None
+
+        return super().update(instance, validated_data)

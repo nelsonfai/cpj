@@ -1219,6 +1219,16 @@ from rest_framework.decorators import action
 from django.db.models import Q
 from datetime import datetime
 
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q
+from datetime import datetime
+from .models import CalendarEvent, Team
+from .serializers import CalendarEventSerializer
+
+
 class CalendarEventViewSet(viewsets.ModelViewSet):
     serializer_class = CalendarEventSerializer
     permission_classes = [IsAuthenticated]
@@ -1227,7 +1237,7 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
         user = self.request.user
         start_date = self.request.query_params.get('start_date')
         end_date = self.request.query_params.get('end_date')
-        
+
         # If no start_date is provided, return no events for the list view
         if not start_date and not self.kwargs.get('pk'):
             return CalendarEvent.objects.none()
@@ -1244,42 +1254,19 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
 
         return CalendarEvent.objects.filter(
             (Q(user=user) | Q(team__member1=user) | Q(team__member2=user)) &
-            (Q(start_datetime__date__range=(start_date, end_date)) | Q(end_datetime__date__range=(start_date, end_date)))
-        ).order_by('start_datetime')
+            (Q(start_time__date__range=(start_date, end_date)) | Q(end_time__date__range=(start_date, end_date)))
+        ).order_by('start_time')
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({"request": self.request})
+        return context
 
-        user = request.user
-        is_shared = serializer.validated_data.get('is_shared', False)
-        team = None
+    def perform_create(self, serializer):
+        serializer.save()
 
-        # Assign team if the event is shared
-        if is_shared:
-            team = Team.objects.filter(Q(member1=user) | Q(member2=user)).first()
-
-        # Save the event with the user and team
-        serializer.save(user=user, team=team)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def update(self, request, *args, **kwargs):
-        partial = kwargs.pop('partial', False)
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-
-        # Handle the team logic for updates
-        is_shared = serializer.validated_data.get('is_shared', instance.is_shared)
-        team = None
-
-        if is_shared:
-            # Assign team if the event is shared
-            team = Team.objects.filter(Q(member1=request.user) | Q(member2=request.user)).first()
-
-        # If not shared, set team to null
-        serializer.save(team=team)
-        return Response(serializer.data)
+    def perform_update(self, serializer):
+        serializer.save()
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1293,11 +1280,10 @@ class CalendarEventViewSet(viewsets.ModelViewSet):
     def bulk_create(self, request):
         serializer = self.get_serializer(data=request.data, many=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save(user=request.user)
+        self.perform_create(serializer)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
-
+    
+    
 from django.http import StreamingHttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
